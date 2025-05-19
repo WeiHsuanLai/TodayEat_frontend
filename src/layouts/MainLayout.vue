@@ -18,7 +18,7 @@
         </div>
 
         <!-- 右邊 -->
-        <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
+        <div class="flex row items-center full-height q-gutter-sm q-ml-auto xs-hide">
           <!-- 登入彈窗按鈕 -->
           <q-item
             clickable
@@ -26,9 +26,11 @@
             class="bg-primary text-white"
             style="width: 130px"
           >
+            <!-- 登入 -->
             <q-item-section>
               <div class="self-center">{{ t('home.login') }}</div>
             </q-item-section>
+            <!-- 大頭貼 -->
             <q-item-section avatar>
               <q-avatar>
                 <img src="https://cdn.quasar.dev/img/avatar.png" />
@@ -58,10 +60,10 @@
           <q-item-section avatar>
             <q-icon name="home" />
           </q-item-section>
-          <q-item-section> {{ t('home') }} </q-item-section>
+          <q-item-section> {{ t('home.home') }} </q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/about">
-          <q-item-section> {{ t('about') }} </q-item-section>
+          <q-item-section> {{ t('home.about') }} </q-item-section>
         </q-item>
       </q-list>
     </q-drawer>

@@ -12,7 +12,8 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev",
     "build": "quasar build",
-    "postinstall": "quasar prepare"
+    "postinstall": "quasar prepare",
+    "clean:vite": "rimraf node_modules/.vite"
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
@@ -38,6 +39,7 @@
     "eslint-plugin-vue": "^9.30.0",
     "globals": "^15.12.0",
     "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
     "typescript": "~5.5.3",
     "vite-plugin-checker": "^0.9.0",
     "vue-tsc": "^2.0.29"
