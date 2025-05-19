@@ -14,19 +14,28 @@
           style="left: 50%; transform: translateX(-50%); cursor: pointer"
           @click="goHome"
         >
-          🍉{{ t('appTitle') }}🍖
+          🍉{{ t('home.appTitle') }}🍖
         </div>
 
         <!-- 右邊 -->
         <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
           <!-- 登入彈窗按鈕 -->
-          <q-btn
-            flat
-            :label="t('login')"
-            color="white"
+          <q-item
+            clickable
             @click="showLogin = true"
-            class="self-center"
-          />
+            class="bg-primary text-white"
+            style="width: 130px"
+          >
+            <q-item-section>
+              <div class="self-center">{{ t('home.login') }}</div>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-avatar>
+                <img src="https://cdn.quasar.dev/img/avatar.png" />
+              </q-avatar>
+            </q-item-section>
+          </q-item>
+
           <!-- 切換語言按鈕 -->
           <q-btn
             flat
@@ -93,7 +102,7 @@ function toggleLang() {
   locale.value = locale.value === 'zh-TW' ? 'en-US' : 'zh-TW';
 }
 
-const langButtonText = computed(() => (locale.value === 'zh-TW' ? 'English' : '中文'));
+const langButtonText = computed(() => (locale.value === 'zh-TW' ? '中文' : 'EN'));
 </script>
 
 <style scoped>
