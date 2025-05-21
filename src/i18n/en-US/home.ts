@@ -7,4 +7,5 @@ export default {
   about: 'About Us',
   username: 'Username',
   password: 'Password',
+  homethishome: 'This is my home',
 };
