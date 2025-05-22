@@ -33,7 +33,7 @@
             <!-- 大頭貼 -->
             <q-item-section avatar>
               <q-avatar>
-                <img src="https://cdn.quasar.dev/img/avatar.png" />
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=daimao" />
               </q-avatar>
             </q-item-section>
           </q-item>
@@ -46,6 +46,24 @@
             @click="toggleLang"
             class="self-center"
           />
+          <q-btn
+            color="primary"
+            label="菜單"
+            @mouseover="menuVisible = true"
+            style="width: 100px"
+            unelevated
+          >
+            <q-menu v-model="menuVisible" @mouseleave="menuVisible = false" fit class="no-shadow">
+              <q-list>
+                <q-item clickable>
+                  <q-item-section>我是菜單一</q-item-section>
+                </q-item>
+                <q-item clickable>
+                  <q-item-section>我是菜單二</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
         </div>
       </q-toolbar>
     </q-header>
@@ -81,7 +99,11 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
 
+// 左側導航
 const leftDrawerOpen = ref(false);
+
+// 菜單
+const menuVisible = ref(false);
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -111,5 +133,13 @@ const langButtonText = computed(() => (locale.value === 'zh-TW' ? '中文' : 'EN
 .custom-toolbar {
   height: 80px;
   min-height: 80px;
+}
+
+.q-item:hover {
+  background-color: #f0f0f0;
+}
+
+.no-shadow {
+  box-shadow: none !important;
 }
 </style>
