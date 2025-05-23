@@ -20,20 +20,38 @@
         <!-- 右邊 -->
         <div class="flex row items-center full-height q-gutter-sm q-ml-auto xs-hide">
           <!-- 登入彈窗按鈕 -->
+          <!-- 若尚未登入 -->
           <q-item
+            v-if="!userStore.isLoggedIn"
             clickable
             @click="showLogin = true"
             class="bg-primary text-white"
             style="width: 130px"
           >
-            <!-- 登入 -->
             <q-item-section>
               <div class="self-center">{{ t('home.login') }}</div>
             </q-item-section>
-            <!-- 大頭貼 -->
             <q-item-section avatar>
               <q-avatar>
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=daimao" />
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+              </q-avatar>
+            </q-item-section>
+          </q-item>
+
+          <!-- 若已登入 -->
+          <q-item
+            v-else
+            clickable
+            class="bg-primary text-white"
+            style="width: 130px"
+            @click="logout"
+          >
+            <q-item-section>
+              <div class="self-center">{{ userStore.username }}</div>
+            </q-item-section>
+            <q-item-section avatar>
+              <q-avatar>
+                <img :src="userStore.avatarUrl" />
               </q-avatar>
             </q-item-section>
           </q-item>
@@ -46,6 +64,8 @@
             @click="toggleLang"
             class="self-center"
           />
+
+          <!-- 下拉菜單 -->
           <q-btn
             color="primary"
             label="菜單"
@@ -64,6 +84,8 @@
               </q-list>
             </q-menu>
           </q-btn>
+
+          <!-- 分隔線 -->
         </div>
       </q-toolbar>
     </q-header>
@@ -71,7 +93,7 @@
     <!-- 登入彈跳視窗 -->
     <LoginDialog v-model="showLogin" @login="handleLogin" />
 
-    <!-- Drawer -->
+    <!-- 左側導覽列彈窗 -->
     <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
         <q-item clickable v-ripple to="/">
@@ -88,7 +110,9 @@
 
     <!-- 頁面內容 -->
     <q-page-container>
-      <router-view />
+      <transition name="fade">
+        <router-view />
+      </transition>
     </q-page-container>
   </q-layout>
 </template>
@@ -98,6 +122,9 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
+import { useUserStore } from '../stores/userStore';
+
+const userStore = useUserStore();
 
 // 左側導航
 const leftDrawerOpen = ref(false);
@@ -105,19 +132,29 @@ const leftDrawerOpen = ref(false);
 // 菜單
 const menuVisible = ref(false);
 
+// 左側導覽列
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
 }
 
+// 中上logo回首頁
 const router = useRouter();
 function goHome() {
   void router.push('/');
 }
 
+// 登入
 const showLogin = ref(false);
 function handleLogin(data: { username: string; password: string }) {
   console.log('收到登入資料：', data);
   // 加入你的登入驗證邏輯，例如 API 呼叫
+  userStore.login(data.username);
+  showLogin.value = false;
+}
+
+// 登出
+function logout() {
+  userStore.logout();
 }
 
 // 語系切換邏輯
