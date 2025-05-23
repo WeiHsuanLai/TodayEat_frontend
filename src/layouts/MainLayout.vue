@@ -91,7 +91,12 @@
     </q-header>
 
     <!-- 登入彈跳視窗 -->
-    <LoginDialog v-model="showLogin" @login="handleLogin" />
+    <LoginDialog
+      v-model="showLogin"
+      @login="handleLogin"
+      @register="handleRegister"
+      @forgotPassword="goToForgotPage"
+    />
 
     <!-- 左側導覽列彈窗 -->
     <q-drawer v-model="leftDrawerOpen" bordered>
@@ -152,9 +157,27 @@ function handleLogin(data: { username: string; password: string }) {
   showLogin.value = false;
 }
 
+// 註冊
+function handleRegister(data: { username: string; password: string }) {
+  console.log('收到註冊資料：', data);
+
+  // 這裡可以加入註冊 API 邏輯（模擬或實際呼叫）
+  // 成功後登入使用者
+  userStore.login(data.username);
+
+  // 關閉登入/註冊彈窗
+  showLogin.value = false;
+}
+
 // 登出
 function logout() {
   userStore.logout();
+}
+
+function goToForgotPage(data: { username: string }) {
+  console.log(data);
+
+  showLogin.value = false;
 }
 
 // 語系切換邏輯
