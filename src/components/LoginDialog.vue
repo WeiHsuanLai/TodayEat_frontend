@@ -81,6 +81,8 @@
           :label="isRegisterMode ? '註冊' : isForgotMode ? '送出' : '登入'"
           color="primary"
           @click="submit"
+          :loading="isSubmitting.valueOf"
+          :disable="isSubmitting.valueOf"
         />
       </q-card-actions>
     </q-card>
@@ -88,10 +90,18 @@
 </template>
 
 <script setup lang="ts">
-import { useField, useForm } from 'vee-validate';
+import { useField, useForm, useIsSubmitting } from 'vee-validate';
 import * as yup from 'yup';
 import { ref, watch } from 'vue';
 import validator from 'validator';
+import { useApi } from 'src/composables/axios';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+
+const { api } = useApi();
+const isSubmitting = useIsSubmitting();
+const router = useRouter();
+const $q = useQuasar();
 
 const isRegisterMode = ref(false);
 const isForgotMode = ref(false);
@@ -200,20 +210,34 @@ function toggleRegisterMode() {
 }
 
 // 根據當前模式送出資料
-const submit = handleSubmit((values) => {
-  if (isForgotMode.value) {
-    emit('forgotPassword', { email: values.email });
-  } else if (isRegisterMode.value) {
-    emit('register', {
-      username: values.account,
-      password: values.password,
-      email: values.email,
-    });
-  } else {
-    emit('login', { username: values.account, password: values.password });
-  }
+const submit = handleSubmit(async (values) => {
+  if (isSubmitting.value) return;
 
-  clearFieldsOnly();
-  internalValue.value = false;
+  try {
+    if (isForgotMode.value) {
+      emit('forgotPassword', { email: values.email });
+    } else if (isRegisterMode.value) {
+      await api.post('/user', {
+        username: values.account,
+        password: values.password,
+        email: values.email,
+      });
+      void router.push('/');
+    } else {
+      await api.post('/', {
+        username: values.account,
+        password: values.password,
+      });
+      void router.push('/login');
+    }
+
+    internalValue.value = false;
+  } catch (err) {
+    console.error('提交失敗:', err);
+    $q.notify({
+      type: 'negative',
+      message: '發生錯誤，請稍後再試或檢查輸入資料',
+    });
+  }
 });
 </script>
