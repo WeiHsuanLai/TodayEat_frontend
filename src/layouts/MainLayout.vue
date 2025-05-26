@@ -174,9 +174,10 @@ function logout() {
   userStore.logout();
 }
 
-function goToForgotPage(data: { username: string }) {
-  console.log(data);
-
+function goToForgotPage(data: { email: string }) {
+  console.log('忘記密碼請求（email）:', data.email);
+  // 這裡可以呼叫 API，例如：
+  // await api.forgotPassword(data.email)
   showLogin.value = false;
 }
 
