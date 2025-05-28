@@ -218,14 +218,14 @@ const submit = handleSubmit(async (values) => {
       emit('forgotPassword', { email: values.email });
     } else if (isRegisterMode.value) {
       await api.post('/user', {
-        username: values.account,
+        account: values.account,
         password: values.password,
         email: values.email,
       });
       void router.push('/');
     } else {
       await api.post('/', {
-        username: values.account,
+        account: values.account,
         password: values.password,
       });
       void router.push('/login');
