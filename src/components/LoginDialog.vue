@@ -217,18 +217,18 @@ const submit = handleSubmit(async (values) => {
     if (isForgotMode.value) {
       emit('forgotPassword', { email: values.email });
     } else if (isRegisterMode.value) {
-      await api.post('/user', {
+      await api.post('/user/register', {
         account: values.account,
         password: values.password,
-        email: values.email,
+        // email: values.email,
       });
       void router.push('/');
     } else {
-      await api.post('/', {
+      await api.post('/user/login', {
         account: values.account,
         password: values.password,
       });
-      void router.push('/login');
+      void router.push('/');
     }
 
     internalValue.value = false;
