@@ -56,6 +56,14 @@
             </q-item-section>
           </q-item>
 
+          <q-btn
+            flat
+            :label="'註冊'"
+            color="white"
+            @click="showRegister = true"
+            class="self-center"
+          />
+
           <!-- 切換語言按鈕 -->
           <q-btn
             flat
@@ -98,6 +106,12 @@
       @forgotPassword="goToForgotPage"
     />
 
+    <RegisterDialog
+      v-model="showRegister"
+      @register="handleRegister"
+      @forgotPassword="goToForgotPage"
+    />
+
     <!-- 左側導覽列彈窗 -->
     <q-drawer v-model="leftDrawerOpen" bordered>
       <q-list>
@@ -130,6 +144,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
 import { useUserStore } from '../stores/userStore';
+import RegisterDialog from '../components/RegisterDialog.vue';
 
 const userStore = useUserStore();
 
@@ -160,6 +175,7 @@ function handleLogin(data: { username: string; password: string }) {
 }
 
 // 註冊
+const showRegister = ref(false);
 function handleRegister(data: { username: string; password: string }) {
   console.log('收到註冊資料：', data);
 
@@ -168,7 +184,7 @@ function handleRegister(data: { username: string; password: string }) {
   userStore.login(data.username);
 
   // 關閉登入/註冊彈窗
-  showLogin.value = false;
+  showRegister.value = false;
 }
 
 // 登出
