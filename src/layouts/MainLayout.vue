@@ -115,9 +115,11 @@
 
     <!-- 頁面內容 -->
     <q-page-container>
-      <transition name="fade">
-        <router-view />
-      </transition>
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </q-page-container>
   </q-layout>
 </template>
