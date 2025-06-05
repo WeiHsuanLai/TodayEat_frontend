@@ -111,7 +111,7 @@ export default defineComponent({
     const schema = yup.object({
       account: yup.string().required('請輸入帳號'),
       email: yup.string().email('請輸入有效的電子郵件').required('請輸入電子郵件'),
-      password: yup.string().min(6, '密碼至少 6 碼').required('請輸入密碼'),
+      password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
       confirmPassword: yup
         .string()
         .oneOf([yup.ref('password')], '密碼不一致')
