@@ -39,13 +39,7 @@
           </q-item>
 
           <!-- 若已登入 -->
-          <q-item
-            v-else
-            clickable
-            class="bg-primary text-white"
-            style="width: 130px"
-            @click="logout"
-          >
+          <q-item v-else clickable class="bg-primary text-white" style="width: 130px">
             <q-item-section>
               <div class="self-center">{{ userStore.username }}</div>
             </q-item-section>
@@ -54,6 +48,13 @@
                 <img :src="userStore.avatarUrl" />
               </q-avatar>
             </q-item-section>
+            <q-menu>
+              <q-list>
+                <q-item clickable @click="logout">
+                  <q-item-section>登出</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
           </q-item>
 
           <q-btn
