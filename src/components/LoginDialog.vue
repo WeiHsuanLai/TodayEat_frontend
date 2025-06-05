@@ -1,243 +1,113 @@
 <template>
-  <q-dialog v-model="internalValue" persistent>
+  <q-dialog v-model="show" persistent>
     <q-card style="min-width: 350px">
       <q-card-section>
-        <div class="text-h6">{{ isRegisterMode ? '註冊' : '登入' }}</div>
+        <div class="text-h6">登入</div>
       </q-card-section>
 
-      <q-card-section class="q-pt-none">
-        <q-input
-          v-if="!isForgotMode"
-          v-model="account.value.value"
-          :error="account.meta.touched && !!account.errorMessage.value"
-          :error-message="account.meta.touched ? account.errorMessage.value : ''"
-          label="使用者名稱"
-          outlined
-          dense
-          autofocus
-        />
-        <!-- Email（註冊專用） -->
-        <q-input
-          v-if="isRegisterMode || isForgotMode"
-          v-model="email.value.value"
-          :error="email.meta.touched && !!email.errorMessage.value"
-          :error-message="email.meta.touched ? email.errorMessage.value : ''"
-          label="電子郵件"
-          type="email"
-          outlined
-          dense
-        />
-        <!-- 密碼 -->
-        <q-input
-          v-if="!isForgotMode && !isRegisterMode"
-          v-model="password.value.value"
-          :error="password.meta.touched && !!password.errorMessage.value"
-          :error-message="password.meta.touched ? password.errorMessage.value : ''"
-          label="密碼"
-          type="password"
-          outlined
-          dense
-        />
-        <!-- 註冊用密碼 -->
-        <q-input
-          v-if="isRegisterMode"
-          v-model="password.value.value"
-          :error="password.meta.touched && !!password.errorMessage.value"
-          :error-message="password.meta.touched ? password.errorMessage.value : ''"
-          label="密碼"
-          type="password"
-          outlined
-          dense
-        />
-        <!-- 確認密碼 -->
-        <q-input
-          v-if="isRegisterMode"
-          v-model="passwordConfirm.value.value"
-          :error="passwordConfirm.meta.touched && !!passwordConfirm.errorMessage.value"
-          :error-message="passwordConfirm.meta.touched ? passwordConfirm.errorMessage.value : ''"
-          label="確認密碼"
-          type="password"
-          outlined
-          dense
-        />
-      </q-card-section>
+      <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
+        <q-card-section>
+          <Field name="account" v-slot="{ field, errorMessage, meta: fieldMeta }">
+            <q-input
+              :model-value="field.value"
+              @update:model-value="field.onChange"
+              @blur="field.onBlur"
+              :name="field.name"
+              label="帳號"
+              outlined
+              dense
+              autofocus
+              :error="fieldMeta.touched && !!errorMessage"
+              :error-message="fieldMeta.touched ? errorMessage : ''"
+            />
+          </Field>
 
-      <q-card-actions align="left" class="q-pt-none" v-if="!isRegisterMode && !isForgotMode">
-        <q-btn flat color="grey" label="忘記密碼？" @click="enterForgotMode" />
-      </q-card-actions>
+          <Field name="password" v-slot="{ field, errorMessage, meta: fieldMeta }">
+            <q-input
+              type="password"
+              :model-value="field.value"
+              @update:model-value="field.onChange"
+              @blur="field.onBlur"
+              :name="field.name"
+              label="密碼"
+              outlined
+              dense
+              :error="fieldMeta.touched && !!errorMessage"
+              :error-message="fieldMeta.touched ? errorMessage : ''"
+            />
+          </Field>
+        </q-card-section>
 
-      <q-card-actions align="right">
-        <q-btn
-          flat
-          v-if="!isForgotMode"
-          :label="isRegisterMode ? '返回登入' : '我要註冊'"
-          color="primary"
-          @click="toggleRegisterMode"
-        />
-        <q-btn flat v-else label="返回登入" color="primary" @click="exitForgotMode" />
-        <q-btn flat label="取消" color="primary" @click="cancel" />
-        <q-btn
-          flat
-          :label="isRegisterMode ? '註冊' : isForgotMode ? '送出' : '登入'"
-          color="primary"
-          @click="submit"
-          :loading="isSubmitting.valueOf"
-          :disable="isSubmitting.valueOf"
-        />
-      </q-card-actions>
+        <q-card-actions align="right">
+          <q-btn flat label="取消" color="primary" @click="show = false" />
+          <q-btn type="submit" label="登入" color="primary" :disable="!meta.valid" />
+        </q-card-actions>
+      </VeeForm>
     </q-card>
   </q-dialog>
 </template>
 
-<script setup lang="ts">
-import { useField, useForm, useIsSubmitting } from 'vee-validate';
+<script lang="ts">
+import { defineComponent, ref } from 'vue';
+import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
-import { ref, watch } from 'vue';
-import validator from 'validator';
 import { useApi } from 'src/composables/axios';
-import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
+import { Notify } from 'quasar';
 
-const { api } = useApi();
-const isSubmitting = useIsSubmitting();
-const router = useRouter();
-const $q = useQuasar();
-
-const isRegisterMode = ref(false);
-const isForgotMode = ref(false);
-
-const schema = yup.object({
-  account: yup.string().when([], {
-    is: () => !isForgotMode.value,
-    then: (s) =>
-      s
-        .required('使用者帳號必填')
-        .min(4, '帳號長度不符')
-        .max(20, '帳號長度不符')
-        .test('is-alphanumeric', '帳號格式錯誤', (val) => validator.isAlphanumeric(val || '')),
-  }),
-
-  password: yup.string().when([], {
-    is: () => !isForgotMode.value,
-    then: (s) => s.required('密碼必填').min(4, '密碼長度不符').max(20, '密碼長度不符'),
-  }),
-  email: yup
-    .string()
-    .email('電子郵件格式錯誤')
-    .when([], {
-      is: () => isRegisterMode.value || isForgotMode.value,
-      then: (s) => s.required('電子郵件必填'),
-    }),
-  passwordConfirm: yup
-    .string()
-    .oneOf([yup.ref('password')], '密碼不一致')
-    .when([], {
-      is: () => isRegisterMode.value,
-      then: (s) => s.required('請再次輸入密碼'),
-    }),
-});
-
-const { handleSubmit } = useForm({
-  validationSchema: schema,
-  validateOnMount: false,
-});
-
-const account = useField<string>('account');
-const password = useField<string>('password');
-const passwordConfirm = useField<string>('passwordConfirm');
-const email = useField<string>('email');
-
-const props = defineProps<{
-  modelValue: boolean;
-}>();
-
-const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'login', value: { username: string; password: string }): void;
-  (e: 'register', value: { username: string; password: string; email: string }): void;
-  (e: 'forgotPassword', value: { email: string }): void;
-}>();
-
-const internalValue = ref(props.modelValue);
-
-watch(
-  () => props.modelValue,
-  (val) => (internalValue.value = val),
-);
-watch(internalValue, (val) => {
-  emit('update:modelValue', val);
-  if (!val) resetForm();
-});
-
-function clearFieldsOnly() {
-  account.resetField();
-  password.resetField();
-  passwordConfirm.resetField();
-  email.resetField();
+interface LoginForm {
+  account: string;
+  password: string;
 }
 
-// 關閉對話框清空資料
-function resetForm() {
-  clearFieldsOnly();
-  isForgotMode.value = false;
-  isRegisterMode.value = false;
-}
+export default defineComponent({
+  components: {
+    VeeForm,
+    Field,
+  },
+  setup(_, { emit }) {
+    const { api } = useApi();
+    useForm<LoginForm>();
 
-// 忘記密碼
-function enterForgotMode() {
-  isForgotMode.value = true;
-  isRegisterMode.value = false;
-  password.value.value = '';
-  passwordConfirm.value.value = '';
-}
+    const show = ref(false);
 
-// 返回登入模式
-function exitForgotMode() {
-  isForgotMode.value = false;
-}
-
-// 關閉 dialog 並重設忘記密碼
-function cancel() {
-  internalValue.value = false;
-  isForgotMode.value = false;
-}
-
-function toggleRegisterMode() {
-  console.log('切換登入/註冊模式');
-  isRegisterMode.value = !isRegisterMode.value;
-  isForgotMode.value = false;
-  clearFieldsOnly();
-}
-
-// 根據當前模式送出資料
-const submit = handleSubmit(async (values) => {
-  if (isSubmitting.value) return;
-
-  try {
-    if (isForgotMode.value) {
-      emit('forgotPassword', { email: values.email });
-    } else if (isRegisterMode.value) {
-      await api.post('/user/register', {
-        account: values.account,
-        password: values.password,
-        // email: values.email,
-      });
-      void router.push('/');
-    } else {
-      await api.post('/user/login', {
-        account: values.account,
-        password: values.password,
-      });
-      void router.push('/');
-    }
-
-    internalValue.value = false;
-  } catch (err) {
-    console.error('提交失敗:', err);
-    $q.notify({
-      type: 'negative',
-      message: '發生錯誤，請稍後再試或檢查輸入資料',
+    const schema = yup.object({
+      account: yup.string().required('請輸入帳號'),
+      password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
     });
-  }
+
+    const onSubmit = async (values: Record<string, unknown>) => {
+      const login = values as unknown as LoginForm;
+
+      try {
+        const res = await api.post('/user/login', {
+          account: login.account,
+          password: login.password,
+        });
+
+        // 假設成功會有 token 或使用者資訊
+        console.log('✅ 登入成功', res.data);
+
+        emit('login', res.data); // 可以視需求 emit 給父元件
+        show.value = false;
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as { response?: { data?: { message?: string } } }).response;
+          console.log(response?.data?.message || '登入失敗，請檢查帳號密碼');
+        } else {
+          Notify.create({
+            type: 'negative',
+            message: '發生未知錯誤',
+          });
+          console.log('發生未知錯誤');
+        }
+      }
+    };
+
+    return {
+      show,
+      schema,
+      onSubmit,
+    };
+  },
 });
 </script>
