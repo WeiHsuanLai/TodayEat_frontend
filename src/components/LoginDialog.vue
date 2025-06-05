@@ -48,7 +48,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { computed, defineComponent } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
@@ -64,11 +64,21 @@ export default defineComponent({
     VeeForm,
     Field,
   },
-  setup(_, { emit }) {
+  props: {
+    modelValue: {
+      type: Boolean,
+      required: true,
+    },
+  },
+  emits: ['update:modelValue', 'login'],
+  setup(props, { emit }) {
     const { api } = useApi();
     useForm<LoginForm>();
 
-    const show = ref(false);
+    const show = computed({
+      get: () => props.modelValue,
+      set: (val: boolean) => emit('update:modelValue', val),
+    });
 
     const schema = yup.object({
       account: yup.string().required('請輸入帳號'),
