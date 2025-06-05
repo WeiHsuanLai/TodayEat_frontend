@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "frontend",
   "version": "0.0.1",
   "description": "Can't decide what to eat? Let this app choose for you!",
