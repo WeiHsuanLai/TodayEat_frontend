@@ -147,6 +147,7 @@ import { useUserStore } from '../stores/userStore';
 import RegisterDialog from '../components/RegisterDialog.vue';
 
 const userStore = useUserStore();
+userStore.restore();
 
 // 左側導航
 const leftDrawerOpen = ref(false);
@@ -167,21 +168,18 @@ function goHome() {
 
 // 登入
 const showLogin = ref(false);
-function handleLogin(data: { username: string; password: string }) {
-  console.log('收到登入資料：', data);
+function handleLogin(data: { username: string; token: string; role: number }) {
+  // console.log('收到登入資料：', data);
   // 加入你的登入驗證邏輯，例如 API 呼叫
-  userStore.login(data.username);
+  userStore.login(data.username, data.token, data.role);
   showLogin.value = false;
 }
 
 // 註冊
 const showRegister = ref(false);
-function handleRegister(data: { username: string; password: string }) {
-  console.log('收到註冊資料：', data);
-
+function handleRegister() {
   // 這裡可以加入註冊 API 邏輯（模擬或實際呼叫）
   // 成功後登入使用者
-  userStore.login(data.username);
 
   // 關閉登入/註冊彈窗
   showRegister.value = false;
@@ -195,7 +193,6 @@ function logout() {
 function goToForgotPage(data: { email: string }) {
   console.log('忘記密碼請求（email）:', data.email);
   // 這裡可以呼叫 API，例如：
-  // await api.forgotPassword(data.email)
   showLogin.value = false;
 }
 

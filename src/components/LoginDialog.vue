@@ -95,9 +95,14 @@ export default defineComponent({
         });
 
         // 假設成功會有 token 或使用者資訊
-        console.log('✅ 登入成功', res.data);
+        console.log('✅ 登入成功');
+        console.log('res', res.data);
 
-        emit('login', res.data); // 可以視需求 emit 給父元件
+        emit('login', {
+          username: res.data.user.account,
+          token: res.data.token,
+          role: res.data.user.role,
+        });
         show.value = false;
       } catch (err: unknown) {
         if (err && typeof err === 'object' && 'response' in err) {
