@@ -1,5 +1,6 @@
 // src/stores/userStore.ts
 import { defineStore } from 'pinia';
+import { useApi } from 'src/composables/axios';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -7,7 +8,7 @@ export const useUserStore = defineStore('user', {
     username: '',
     avatarUrl: '',
     token: '',
-    role: 0,
+    role: null as number | null,
   }),
   actions: {
     login(username: string, token: string, role: number) {
@@ -28,9 +29,26 @@ export const useUserStore = defineStore('user', {
         }),
       );
     },
-    logout() {
+    async logout() {
+      const { api } = useApi();
+      try {
+        if (this.token) {
+          await api.post('/user/logout', null, {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+          console.log('成功登出');
+        }
+      } catch (err) {
+        console.warn('登出失敗:', err);
+      }
+
+      // 清除本地狀態
       this.isLoggedIn = false;
       this.username = '';
+      this.token = '';
+      this.role = null;
       this.avatarUrl = '';
       localStorage.removeItem('user');
     },

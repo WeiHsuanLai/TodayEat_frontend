@@ -31,11 +31,6 @@
             <q-item-section>
               <div class="self-center">{{ t('home.login') }}</div>
             </q-item-section>
-            <q-item-section avatar>
-              <q-avatar>
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-              </q-avatar>
-            </q-item-section>
           </q-item>
 
           <!-- 若已登入 -->
@@ -58,12 +53,19 @@
           </q-item>
 
           <q-btn
+            v-if="!userStore.isLoggedIn"
             flat
             :label="'註冊'"
             color="white"
             @click="showRegister = true"
             class="self-center"
           />
+
+          <q-item-section avatar>
+            <q-avatar>
+              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+            </q-avatar>
+          </q-item-section>
 
           <!-- 切換語言按鈕 -->
           <q-btn
