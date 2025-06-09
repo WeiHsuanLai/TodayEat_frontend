@@ -20,29 +20,33 @@
         <!-- 右邊 -->
         <div class="flex row items-center full-height q-gutter-sm q-ml-auto xs-hide">
           <!-- 登入彈窗按鈕 -->
-          <!-- 若尚未登入 -->
-          <q-item
+          <!-- 未登入顯示登入與註冊按鈕 -->
+          <q-btn
             v-if="!userStore.isLoggedIn"
-            clickable
+            flat
+            color="white"
+            class="q-mr-sm"
             @click="showLogin = true"
-            class="bg-primary text-white"
-            style="width: 130px"
-          >
-            <q-item-section>
-              <div class="self-center">{{ t('home.login') }}</div>
-            </q-item-section>
-          </q-item>
+            :label="t('home.login')"
+          />
+          <q-btn
+            v-if="!userStore.isLoggedIn"
+            flat
+            color="white"
+            class="q-mr-sm"
+            @click="showRegister = true"
+            label="註冊"
+          />
 
-          <!-- 若已登入 -->
-          <q-item v-else clickable class="bg-primary text-white" style="width: 130px">
-            <q-item-section>
-              <div class="self-center">{{ userStore.username }}</div>
-            </q-item-section>
-            <q-item-section avatar>
-              <q-avatar>
-                <img :src="userStore.avatarUrl" />
-              </q-avatar>
-            </q-item-section>
+          <!-- 已登入顯示使用者名稱與頭像下拉 -->
+          <q-btn
+            v-else
+            flat
+            color="white"
+            class="q-mr-sm"
+            :label="userStore.username"
+            icon-right="expand_more"
+          >
             <q-menu>
               <q-list>
                 <q-item clickable @click="logout">
@@ -50,22 +54,13 @@
                 </q-item>
               </q-list>
             </q-menu>
-          </q-item>
-
-          <q-btn
-            v-if="!userStore.isLoggedIn"
-            flat
-            :label="'註冊'"
-            color="white"
-            @click="showRegister = true"
-            class="self-center"
-          />
-
-          <q-item-section avatar>
-            <q-avatar>
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-            </q-avatar>
-          </q-item-section>
+          </q-btn>
+          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
+            <img :src="userStore.avatarUrl" />
+          </q-avatar>
+          <q-avatar v-else>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+          </q-avatar>
 
           <!-- 切換語言按鈕 -->
           <q-btn
@@ -75,28 +70,6 @@
             @click="toggleLang"
             class="self-center"
           />
-
-          <!-- 下拉菜單 -->
-          <q-btn
-            color="primary"
-            label="菜單"
-            @mouseover="menuVisible = true"
-            style="width: 100px"
-            unelevated
-          >
-            <q-menu v-model="menuVisible" @mouseleave="menuVisible = false" fit class="no-shadow">
-              <q-list>
-                <q-item clickable>
-                  <q-item-section>我是菜單一</q-item-section>
-                </q-item>
-                <q-item clickable>
-                  <q-item-section>我是菜單二</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </q-btn>
-
-          <!-- 分隔線 -->
         </div>
       </q-toolbar>
     </q-header>
@@ -155,9 +128,6 @@ userStore.restore();
 // 左側導航
 const leftDrawerOpen = ref(false);
 
-// 菜單
-const menuVisible = ref(false);
-
 // 左側導覽列
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -190,7 +160,7 @@ function handleRegister() {
 
 // 登出
 function logout() {
-  userStore.logout();
+  void userStore.logout();
 }
 
 function goToForgotPage(data: { email: string }) {
