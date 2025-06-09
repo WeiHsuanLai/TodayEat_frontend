@@ -4,6 +4,7 @@ export default {
   success: 'Action was successful',
   appTitle: 'What to eat today',
   login: 'Login',
+  signout: 'Sign out',
   register: 'Register',
   about: 'About Us',
   username: 'Username',

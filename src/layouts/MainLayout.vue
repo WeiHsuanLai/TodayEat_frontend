@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
-      <!-- 導覽列 -->
+      <!-- 網頁版導覽列 -->
       <q-toolbar class="custom-toolbar relative-position q-px-md">
         <!-- 左邊 -->
         <!-- 左側導覽列 -->
@@ -10,7 +10,7 @@
         <!-- 中間 -->
         <!-- 首頁標題 -->
         <div
-          class="absolute full-height flex items-center justify-center text-h6 text-weight-bold text-white"
+          class="absolute full-height flex items-center justify-center text-h6 text-weight-bold text-white xs-hide"
           style="left: 50%; transform: translateX(-50%); cursor: pointer"
           @click="goHome"
         >
@@ -18,9 +18,16 @@
         </div>
 
         <!-- 右邊 -->
-        <div class="flex row items-center full-height q-gutter-sm q-ml-auto xs-hide">
+        <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
           <!-- 登入彈窗按鈕 -->
           <!-- 未登入顯示登入與註冊按鈕 -->
+          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
+            <img :src="userStore.avatarUrl" />
+          </q-avatar>
+          <q-avatar v-else>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+          </q-avatar>
+
           <q-btn
             v-if="!userStore.isLoggedIn"
             flat
@@ -37,35 +44,39 @@
             @click="showRegister = true"
             :label="t('register')"
           />
-
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
           <q-btn
             v-else
             flat
             color="white"
             class="q-mr-sm"
-            :label="userStore.username"
             ref="userBtnRef"
             icon-right="expand_more"
           >
             <q-menu auto-close fit :style="{ width: userBtnWidth + 'px' }">
-              <div class="flex flex-center full-width">
+              <div class="flex wrap flex-center full-width">
+                <q-avatar v-if="userStore.isLoggedIn" size="32px">
+                  <img :src="userStore.avatarUrl" />
+                </q-avatar>
+                <q-avatar v-else>
+                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+                </q-avatar>
+
+                <!-- 加上 full-width 就能強制換行 -->
+                <div class="text-center full-width q-mt-xs">
+                  {{ userStore.username }}
+                </div>
+
                 <q-btn
                   flat
                   color="primary"
-                  label="登出"
+                  :label="t('signout')"
                   @click="logout"
                   class="full-width justify-start q-px-md"
                 />
               </div>
             </q-menu>
           </q-btn>
-          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
-            <img :src="userStore.avatarUrl" />
-          </q-avatar>
-          <q-avatar v-else>
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-          </q-avatar>
 
           <!-- 切換語言按鈕 -->
           <q-btn
@@ -73,7 +84,7 @@
             :label="langButtonText"
             color="white"
             @click="toggleLang"
-            class="self-center"
+            class="self-center xs-hide"
           />
         </div>
       </q-toolbar>
@@ -144,8 +155,10 @@ function goHome() {
   void router.push('/');
 }
 
+// 調整登出下拉選單寬度
 const userBtnRef = ref<HTMLElement | null>(null);
 const userBtnWidth = ref(150);
+
 onMounted(() => {
   void nextTick(() => {
     if (userBtnRef.value) {
