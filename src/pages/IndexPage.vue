@@ -1,10 +1,5 @@
 <template>
   <q-page class="row items-center justify-evenly">
-    <!-- <example-component title="Example component" active></example-component> -->
-    <!-- <h1>{{ t('home.homethishome') }}</h1>
-    <h1>{{ t('home.homethishome') }}</h1>
-    <h1>{{ t('home.homethishome') }}</h1>
-    <h1>{{ t('home.homethishome') }}</h1> -->
     <h1>123</h1>
     <GridLottery :items="prizes" @finish="handleFinish">
       <template v-slot="{ item }"> 🎁{{ item.label }} </template>

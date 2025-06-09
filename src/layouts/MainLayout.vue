@@ -14,7 +14,7 @@
           style="left: 50%; transform: translateX(-50%); cursor: pointer"
           @click="goHome"
         >
-          🍉{{ t('home.appTitle') }}🍖
+          🍉{{ t('appTitle') }}🍖
         </div>
 
         <!-- 右邊 -->
@@ -27,7 +27,7 @@
             color="white"
             class="q-mr-sm"
             @click="showLogin = true"
-            :label="t('home.login')"
+            :label="t('login')"
           />
           <q-btn
             v-if="!userStore.isLoggedIn"
@@ -35,7 +35,7 @@
             color="white"
             class="q-mr-sm"
             @click="showRegister = true"
-            label="註冊"
+            :label="t('register')"
           />
 
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
@@ -45,14 +45,19 @@
             color="white"
             class="q-mr-sm"
             :label="userStore.username"
+            ref="userBtnRef"
             icon-right="expand_more"
           >
-            <q-menu>
-              <q-list>
-                <q-item clickable @click="logout">
-                  <q-item-section>登出</q-item-section>
-                </q-item>
-              </q-list>
+            <q-menu auto-close fit :style="{ width: userBtnWidth + 'px' }">
+              <div class="flex flex-center full-width">
+                <q-btn
+                  flat
+                  color="primary"
+                  label="登出"
+                  @click="logout"
+                  class="full-width justify-start q-px-md"
+                />
+              </div>
             </q-menu>
           </q-btn>
           <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
@@ -95,10 +100,10 @@
           <q-item-section avatar>
             <q-icon name="home" />
           </q-item-section>
-          <q-item-section> {{ t('home.home') }} </q-item-section>
+          <q-item-section> {{ t('home') }} </q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/about">
-          <q-item-section> {{ t('home.about') }} </q-item-section>
+          <q-item-section> {{ t('aboutus') }} </q-item-section>
         </q-item>
       </q-list>
     </q-drawer>
@@ -115,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
@@ -138,6 +143,16 @@ const router = useRouter();
 function goHome() {
   void router.push('/');
 }
+
+const userBtnRef = ref<HTMLElement | null>(null);
+const userBtnWidth = ref(150);
+onMounted(() => {
+  void nextTick(() => {
+    if (userBtnRef.value) {
+      userBtnWidth.value = userBtnRef.value.offsetWidth;
+    }
+  });
+});
 
 // 登入
 const showLogin = ref(false);
