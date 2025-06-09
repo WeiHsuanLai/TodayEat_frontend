@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show" persistent>
-    <q-card style="min-width: 400px">
+    <q-card style="min-width: 350px">
       <q-card-section>
         <div class="text-h6">註冊</div>
       </q-card-section>

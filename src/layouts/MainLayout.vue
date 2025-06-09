@@ -21,21 +21,6 @@
         <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
           <!-- 登入彈窗按鈕 -->
           <!-- 未登入顯示登入與註冊按鈕 -->
-          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
-            <img :src="userStore.avatarUrl" />
-          </q-avatar>
-          <q-avatar v-else>
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-          </q-avatar>
-
-          <q-btn
-            v-if="!userStore.isLoggedIn"
-            flat
-            color="white"
-            class="q-mr-sm"
-            @click="showLogin = true"
-            :label="t('login')"
-          />
           <q-btn
             v-if="!userStore.isLoggedIn"
             flat
@@ -44,6 +29,15 @@
             @click="showRegister = true"
             :label="t('register')"
           />
+          <q-btn
+            v-if="!userStore.isLoggedIn"
+            flat
+            color="white"
+            class="q-mr-sm"
+            @click="showLogin = true"
+            :label="t('login')"
+          />
+
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
           <q-btn
             v-else
@@ -53,18 +47,22 @@
             ref="userBtnRef"
             icon-right="expand_more"
           >
-            <q-menu auto-close fit :style="{ width: userBtnWidth + 'px' }">
-              <div class="flex wrap flex-center full-width">
-                <q-avatar v-if="userStore.isLoggedIn" size="32px">
-                  <img :src="userStore.avatarUrl" />
-                </q-avatar>
-                <q-avatar v-else>
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-                </q-avatar>
+            <q-menu auto-close anchor="bottom right" self="top right">
+              <div class="flex wrap flex-center full-width" avatar>
+                <div class="menu-margin">
+                  <div class="column items-center">
+                    <q-avatar v-if="userStore.isLoggedIn" size="32px">
+                      <img :src="userStore.avatarUrl" />
+                    </q-avatar>
+                    <q-avatar v-else>
+                      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+                    </q-avatar>
+                  </div>
 
-                <!-- 加上 full-width 就能強制換行 -->
-                <div class="text-center full-width q-mt-xs">
-                  {{ userStore.username }}
+                  <!-- 加上 full-width 就能強制換行 -->
+                  <div class="text-center full-width q-mt-xs">
+                    {{ userStore.username }}
+                  </div>
                 </div>
 
                 <q-btn
@@ -77,6 +75,12 @@
               </div>
             </q-menu>
           </q-btn>
+          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
+            <img :src="userStore.avatarUrl" />
+          </q-avatar>
+          <q-avatar v-else>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+          </q-avatar>
 
           <!-- 切換語言按鈕 -->
           <q-btn
@@ -131,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
@@ -157,15 +161,6 @@ function goHome() {
 
 // 調整登出下拉選單寬度
 const userBtnRef = ref<HTMLElement | null>(null);
-const userBtnWidth = ref(150);
-
-onMounted(() => {
-  void nextTick(() => {
-    if (userBtnRef.value) {
-      userBtnWidth.value = userBtnRef.value.offsetWidth;
-    }
-  });
-});
 
 // 登入
 const showLogin = ref(false);
@@ -218,5 +213,10 @@ const langButtonText = computed(() => (locale.value === 'zh-TW' ? '中文' : 'EN
 
 .no-shadow {
   box-shadow: none !important;
+}
+
+.menu-margin {
+  margin: 20px 0 10px 0;
+  width: 200px;
 }
 </style>
