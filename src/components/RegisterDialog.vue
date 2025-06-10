@@ -78,7 +78,6 @@ import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
 import { useUserStore } from 'src/stores/userStore';
-const userStore = useUserStore();
 
 interface RegisterForm {
   account: string;
@@ -101,6 +100,7 @@ export default defineComponent({
   emits: ['update:modelValue', 'register'],
   setup(props, { emit }) {
     const { api } = useApi();
+    const userStore = useUserStore();
 
     const show = computed({
       get: () => props.modelValue,
@@ -131,9 +131,7 @@ export default defineComponent({
         });
         console.log(res.data);
         const { token, user } = res.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        userStore.login(res.data.user.account, res.data.token, res.data.user.role);
+        userStore.login(res.data.user.account, token, user.role);
 
         emit('register', form);
         syncShow(false);

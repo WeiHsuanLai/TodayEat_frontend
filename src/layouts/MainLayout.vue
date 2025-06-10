@@ -163,9 +163,9 @@ const userBtnRef = ref<HTMLElement | null>(null);
 
 // 登入
 const showLogin = ref(false);
+
 function handleLogin(data: { username: string; token: string; role: number }) {
-  // console.log('收到登入資料：', data);
-  // 加入你的登入驗證邏輯，例如 API 呼叫
+  if (typeof data.username !== 'string') return;
   userStore.login(data.username, data.token, data.role);
   showLogin.value = false;
 }
@@ -173,10 +173,6 @@ function handleLogin(data: { username: string; token: string; role: number }) {
 // 註冊
 const showRegister = ref(false);
 function handleRegister() {
-  // 這裡可以加入註冊 API 邏輯（模擬或實際呼叫）
-  // 成功後登入使用者
-
-  // 關閉登入/註冊彈窗
   showRegister.value = false;
 }
 
