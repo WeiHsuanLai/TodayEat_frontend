@@ -139,9 +139,21 @@ export default defineComponent({
         emit('register', form);
         syncShow(false);
       } catch (err: unknown) {
-        const error = err as AxiosError<{ message: string; code?: string }>;
-        const msg = error.response?.data?.message || '註冊失敗';
+        type APIErrorResponse = {
+          errors: { msg: string }[];
+          code?: string;
+          message?: string;
+        };
+        const error = err as AxiosError<APIErrorResponse>;
         const code = error.response?.data?.code;
+        const rawMsg = error.response?.data?.errors?.[0]?.msg;
+        const fallbackMsg = error.response?.data?.message;
+        const msg =
+          typeof rawMsg === 'string'
+            ? rawMsg
+            : typeof fallbackMsg === 'string'
+              ? fallbackMsg
+              : '註冊失敗';
         Notify.create({
           type: 'negative',
           message: msg,
