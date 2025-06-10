@@ -78,6 +78,8 @@ import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
 import { useUserStore } from 'src/stores/userStore';
+import type { AxiosError } from 'axios';
+import { Notify } from 'quasar';
 
 interface RegisterForm {
   account: string;
@@ -101,6 +103,7 @@ export default defineComponent({
   setup(props, { emit }) {
     const { api } = useApi();
     const userStore = useUserStore();
+    const { setFieldError } = useForm<RegisterForm>();
 
     const show = computed({
       get: () => props.modelValue,
@@ -135,8 +138,22 @@ export default defineComponent({
 
         emit('register', form);
         syncShow(false);
-      } catch (err) {
-        console.log(err);
+      } catch (err: unknown) {
+        const error = err as AxiosError<{ message: string; code?: string }>;
+        const msg = error.response?.data?.message || '註冊失敗';
+        const code = error.response?.data?.code;
+        Notify.create({
+          type: 'negative',
+          message: msg,
+          position: 'center',
+          timeout: 1000,
+        });
+        if (code === 'ACCOUNT_EXISTS') {
+          setFieldError('account', msg);
+        } else if (code === 'EMAIL_EXISTS') {
+          setFieldError('email', msg);
+        }
+        console.warn('❌ 錯誤訊息：', error.response?.data);
       }
     };
 
