@@ -77,6 +77,8 @@ import { computed, defineComponent } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
+import { useUserStore } from 'src/stores/userStore';
+const userStore = useUserStore();
 
 interface RegisterForm {
   account: string;
@@ -128,6 +130,11 @@ export default defineComponent({
           password: form.password,
         });
         console.log(res.data);
+        const { token, user } = res.data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+        userStore.login(res.data.user.account, res.data.token, res.data.user.role);
+
         emit('register', form);
         syncShow(false);
       } catch (err) {

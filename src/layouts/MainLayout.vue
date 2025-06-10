@@ -59,7 +59,6 @@
                     </q-avatar>
                   </div>
 
-                  <!-- 加上 full-width 就能強制換行 -->
                   <div class="text-center full-width q-mt-xs">
                     {{ userStore.username }}
                   </div>
