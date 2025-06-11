@@ -165,6 +165,13 @@ export default defineComponent({
         console.log('✅ 登入成功');
         console.log('res', res.data);
 
+        Notify.create({
+          type: 'warning',
+          message: '登入成功',
+          position: 'center',
+          timeout: 1500,
+        });
+
         emit('login', {
           username: res.data.user.account,
           token: res.data.token,
