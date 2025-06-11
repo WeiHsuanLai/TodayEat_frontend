@@ -125,6 +125,9 @@
         <q-item clickable v-ripple to="/about">
           <q-item-section> {{ t('aboutus') }} </q-item-section>
         </q-item>
+        <q-item clickable v-ripple to="/setting">
+          <q-item-section> 會員設定 </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
 
