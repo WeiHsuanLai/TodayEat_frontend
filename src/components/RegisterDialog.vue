@@ -103,7 +103,7 @@ export default defineComponent({
   setup(props, { emit }) {
     const { api } = useApi();
     const userStore = useUserStore();
-    const { setFieldError } = useForm<RegisterForm>();
+    // const { setFieldError } = useForm<RegisterForm>();
 
     const show = computed({
       get: () => props.modelValue,
@@ -136,36 +136,24 @@ export default defineComponent({
         const { token, user } = res.data;
         userStore.login(res.data.user.account, token, user.role);
 
+        Notify.create({
+          type: 'positive',
+          message: '註冊成功！歡迎加入 🍉',
+          position: 'center',
+          timeout: 1500,
+        });
+
         emit('register', form);
         syncShow(false);
-      } catch (err: unknown) {
-        type APIErrorResponse = {
-          errors: { msg: string }[];
-          code?: string;
-          message?: string;
-        };
-        const error = err as AxiosError<APIErrorResponse>;
-        const code = error.response?.data?.code;
-        const rawMsg = error.response?.data?.errors?.[0]?.msg;
-        const fallbackMsg = error.response?.data?.message;
-        const msg =
-          typeof rawMsg === 'string'
-            ? rawMsg
-            : typeof fallbackMsg === 'string'
-              ? fallbackMsg
-              : '註冊失敗';
-        Notify.create({
-          type: 'negative',
-          message: msg,
-          position: 'center',
-          timeout: 1000,
+      } catch (err) {
+        const error = err as AxiosError;
+        console.error('❌ axios error:', {
+          message: error.message,
+          code: error.code,
+          isAxiosError: error.isAxiosError,
+          request: error.request,
+          response: error.response,
         });
-        if (code === 'ACCOUNT_EXISTS') {
-          setFieldError('account', msg);
-        } else if (code === 'EMAIL_EXISTS') {
-          setFieldError('email', msg);
-        }
-        console.warn('❌ 錯誤訊息：', error.response?.data);
       }
     };
 
