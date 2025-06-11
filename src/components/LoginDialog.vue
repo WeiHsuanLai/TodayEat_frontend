@@ -108,6 +108,12 @@ export default defineComponent({
         if (err && typeof err === 'object' && 'response' in err) {
           const response = (err as { response?: { data?: { message?: string } } }).response;
           console.log(response?.data?.message || '登入失敗，請檢查帳號密碼');
+          Notify.create({
+            type: 'negative',
+            message: `${response?.data?.message}`,
+            position: 'center',
+            timeout: 1000,
+          });
         } else {
           Notify.create({
             type: 'negative',
