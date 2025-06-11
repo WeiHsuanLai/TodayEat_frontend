@@ -1,54 +1,89 @@
 <template>
   <q-dialog v-model="show" persistent>
     <q-card style="min-width: 350px">
-      <q-card-section>
-        <div class="text-h6">登入</div>
-      </q-card-section>
-
-      <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
+      <template v-if="!isResetMode">
         <q-card-section>
-          <Field name="account" v-slot="{ field, errorMessage, meta: fieldMeta }">
-            <q-input
-              :model-value="field.value"
-              @update:model-value="field.onChange"
-              @blur="field.onBlur"
-              :name="field.name"
-              label="帳號"
-              outlined
-              dense
-              autofocus
-              :error="fieldMeta.touched && !!errorMessage"
-              :error-message="fieldMeta.touched ? errorMessage : ''"
-            />
-          </Field>
-
-          <Field name="password" v-slot="{ field, errorMessage, meta: fieldMeta }">
-            <q-input
-              type="password"
-              :model-value="field.value"
-              @update:model-value="field.onChange"
-              @blur="field.onBlur"
-              :name="field.name"
-              label="密碼"
-              outlined
-              dense
-              :error="fieldMeta.touched && !!errorMessage"
-              :error-message="fieldMeta.touched ? errorMessage : ''"
-            />
-          </Field>
+          <div class="text-h6">登入</div>
         </q-card-section>
+        <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
+          <q-card-section>
+            <Field name="account" v-slot="{ field, errorMessage, meta: fieldMeta }">
+              <q-input
+                :model-value="field.value"
+                @update:model-value="field.onChange"
+                @blur="field.onBlur"
+                :name="field.name"
+                label="帳號"
+                outlined
+                dense
+                autofocus
+                :error="fieldMeta.touched && !!errorMessage"
+                :error-message="fieldMeta.touched ? errorMessage : ''"
+              />
+            </Field>
 
-        <q-card-actions align="right">
-          <q-btn flat label="取消" color="primary" @click="show = false" />
-          <q-btn type="submit" label="登入" color="primary" :disable="!meta.valid" />
-        </q-card-actions>
-      </VeeForm>
+            <Field name="password" v-slot="{ field, errorMessage, meta: fieldMeta }">
+              <q-input
+                type="password"
+                :model-value="field.value"
+                @update:model-value="field.onChange"
+                @blur="field.onBlur"
+                :name="field.name"
+                label="密碼"
+                outlined
+                dense
+                :error="fieldMeta.touched && !!errorMessage"
+                :error-message="fieldMeta.touched ? errorMessage : ''"
+              />
+            </Field>
+          </q-card-section>
+          <q-card-actions align="between" class="q-px-md">
+            <q-btn flat color="primary" @click="toggleResetMode">
+              {{ '忘記密碼？' }}
+            </q-btn>
+            <div class="row q-gutter-x-sm">
+              <q-btn flat label="取消" color="primary" @click="show = false" />
+              <q-btn type="submit" label="登入" color="primary" :disable="!meta.valid" />
+            </div>
+          </q-card-actions>
+        </VeeForm>
+      </template>
+      <template v-else>
+        <q-card-section>
+          <div class="text-h6">忘記密碼</div>
+        </q-card-section>
+        <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
+          <q-card-section>
+            <Field name="email" v-slot="{ field, errorMessage, meta: fieldMeta }">
+              <q-input
+                type="email"
+                :model-value="field.value"
+                @update:model-value="field.onChange"
+                @blur="field.onBlur"
+                :name="field.name"
+                label="請填寫您的Email"
+                outlined
+                dense
+                :error="fieldMeta.touched && !!errorMessage"
+                :error-message="fieldMeta.touched ? errorMessage : ''"
+              />
+            </Field>
+          </q-card-section>
+
+          <q-card-actions align="between">
+            <q-btn flat color="primary" @click="toggleResetMode">
+              {{ '返回登入' }}
+            </q-btn>
+            <q-btn type="submit" label="確定" color="primary" :disable="!meta.valid" />
+          </q-card-actions>
+        </VeeForm>
+      </template>
     </q-card>
   </q-dialog>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
@@ -80,14 +115,46 @@ export default defineComponent({
       set: (val: boolean) => emit('update:modelValue', val),
     });
 
-    const schema = yup.object({
-      account: yup.string().required('請輸入帳號'),
-      password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
-    });
+    watch(
+      () => props.modelValue,
+      (val) => {
+        if (val) {
+          isResetMode.value = false;
+        }
+      },
+    );
+
+    const isResetMode = ref(false);
+    const toggleResetMode = () => {
+      isResetMode.value = !isResetMode.value;
+    };
+
+    const schema = computed(() =>
+      isResetMode.value
+        ? yup.object({
+            email: yup.string().email('請輸入有效 Email').required('請填寫 Email'),
+          })
+        : yup.object({
+            account: yup.string().required('請輸入帳號'),
+            password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
+          }),
+    );
 
     const onSubmit = async (values: Record<string, unknown>) => {
-      const login = values as unknown as LoginForm;
+      if (isResetMode.value) {
+        const { email } = values as { email: string };
+        console.log('🔄 模擬發送忘記密碼請求:', email);
+        Notify.create({
+          type: 'info',
+          message: `模擬寄送至：${email}`,
+          position: 'center',
+          timeout: 1500,
+        });
+        show.value = false;
+        return;
+      }
 
+      const login = values as unknown as LoginForm;
       try {
         const res = await api.post('/user/login', {
           account: login.account,
@@ -128,6 +195,8 @@ export default defineComponent({
       show,
       schema,
       onSubmit,
+      toggleResetMode,
+      isResetMode,
     };
   },
 });
