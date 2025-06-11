@@ -18,6 +18,7 @@
         </div>
 
         <!-- 右邊 -->
+
         <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
           <!-- 登入彈窗按鈕 -->
           <!-- 未登入顯示登入與註冊按鈕 -->
@@ -39,9 +40,20 @@
           />
 
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
+
+          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
+            <img :src="userStore.avatarUrl" />
+          </q-avatar>
+          <q-avatar v-else>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
+          </q-avatar>
+
+          <!-- 登入後顯示下拉選單 -->
           <q-btn
-            v-else
+            v-if="userStore.isLoggedIn"
             flat
+            dense
+            size="sm"
             color="white"
             class="q-mr-sm"
             ref="userBtnRef"
@@ -74,12 +86,6 @@
               </div>
             </q-menu>
           </q-btn>
-          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
-            <img :src="userStore.avatarUrl" />
-          </q-avatar>
-          <q-avatar v-else>
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-          </q-avatar>
 
           <!-- 切換語言按鈕 -->
           <q-btn
