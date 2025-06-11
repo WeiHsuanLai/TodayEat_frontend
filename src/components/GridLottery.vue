@@ -2,13 +2,11 @@
   <div class="lottery-container">
     <div class="grid" :style="gridStyle">
       <div
-        v-for="(item, index) in items"
+        v-for="(item, index) in prizes"
         :key="index"
         :class="['grid-item', { active: index === activeIndex }]"
       >
-        <slot :item="item" :index="index">
-          {{ item.label }}
-        </slot>
+        {{ item.label }}
       </div>
     </div>
     <button class="start-btn" @click="startLottery" :disabled="isRunning">
@@ -19,19 +17,23 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import type { PropType } from 'vue';
 
 export default defineComponent({
   name: 'GridLottery',
-  props: {
-    items: {
-      type: Array as PropType<Array<{ label: string }>>,
-      required: true,
-    },
-    winningIndex: Number,
-  },
   data() {
     return {
+      prizes: [
+        { label: '台式料理' },
+        { label: '中式料理' },
+        { label: '日式料理' },
+        { label: '韓式料理' },
+        { label: '美式料理' },
+        { label: '義式料理' },
+        { label: '泰式料理' },
+        { label: '越南料理' },
+        { label: '印度料理' },
+        { label: '港式料理' },
+      ],
       activeIndex: -1,
       isRunning: false,
       timer: null as ReturnType<typeof setTimeout> | null,
@@ -39,7 +41,7 @@ export default defineComponent({
   },
   computed: {
     gridStyle(): Record<string, string> {
-      const count = Math.ceil(Math.sqrt(this.items.length));
+      const count = Math.ceil(Math.sqrt(this.prizes.length));
       return {
         gridTemplateColumns: `repeat(${count}, 1fr)`,
       };
@@ -50,8 +52,8 @@ export default defineComponent({
       if (this.isRunning) return;
       this.isRunning = true;
 
-      const totalItems = this.items.length;
-      const finalIndex = this.winningIndex ?? Math.floor(Math.random() * totalItems);
+      const totalItems = this.prizes.length;
+      const finalIndex = Math.floor(Math.random() * totalItems);
       const cycles = 3;
       const totalSteps = cycles * totalItems + finalIndex;
       let steps = 0;
@@ -64,7 +66,7 @@ export default defineComponent({
         if (steps >= totalSteps) {
           if (this.timer) clearTimeout(this.timer);
           this.isRunning = false;
-          this.$emit('finish', this.items[finalIndex]);
+          this.handleFinish(this.prizes[finalIndex]!);
         } else {
           if (steps > totalSteps * 0.7) speed += 10;
           if (steps > totalSteps * 0.85) speed += 15;
@@ -73,6 +75,9 @@ export default defineComponent({
       };
 
       this.timer = setTimeout(runStep, speed);
+    },
+    handleFinish(prize: { label: string }) {
+      console.log('🎉 恭喜你抽到：', prize.label);
     },
   },
   beforeUnmount() {
@@ -91,8 +96,8 @@ export default defineComponent({
 .grid {
   display: grid;
   gap: 10px;
-  width: 300px;
-  height: 300px;
+  width: 480px;
+  height: 400px;
   margin-bottom: 20px;
 }
 
