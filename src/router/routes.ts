@@ -15,6 +15,20 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/admin',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/Admin/AdminPage.vue'),
+        meta: {
+          requiresAuth: true,
+          requiresAdmin: true,
+        },
+      },
+    ],
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),
   },
