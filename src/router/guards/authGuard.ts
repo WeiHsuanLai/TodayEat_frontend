@@ -30,7 +30,9 @@ export function authGuard(
   if (to.meta.requiresAdmin && userStore.role !== UserRole.ADMIN) {
     Notify.create({
       type: 'negative',
-      message: '只有管理員可以存取此頁面',
+      message: '只有管理員可以存取此頁面，將自動返回首頁',
+      position: 'center',
+      timeout: 1500,
     });
     return next('/');
   }
