@@ -13,13 +13,12 @@
         @click="checkHealth"
         class="q-mr-sm"
       />
-      <q-btn outline color="white" label="回首頁" @click="goHome" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { api } from 'src/composables/axios';
@@ -28,10 +27,8 @@ const router = useRouter();
 const $q = useQuasar();
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
-
-function goHome() {
-  void router.replace('/');
-}
+let retryCount = 0;
+const MAX_RETRIES = 10;
 
 async function checkHealth() {
   try {
@@ -41,22 +38,39 @@ async function checkHealth() {
         type: 'positive',
         message: '✅ 伺服器已恢復，自動跳轉首頁',
       });
-      if (retryTimer) {
-        clearInterval(retryTimer);
-        retryTimer = null;
-      }
+      clearRetry();
       void router.replace('/');
     }
   } catch {
-    $q.notify({
-      type: 'negative',
-      message: '❌ 無法連接伺服器，將繼續重試',
-    });
+    retryCount++;
+    if (retryCount >= MAX_RETRIES) {
+      clearRetry();
+      $q.notify({
+        type: 'warning',
+        message: '⚠️ 已重試 10 次仍無法連接，請稍後再試',
+      });
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: `❌ 無法連接伺服器，將繼續重試 (${retryCount}/${MAX_RETRIES})`,
+      });
+    }
+  }
+}
+
+function clearRetry() {
+  if (retryTimer) {
+    clearInterval(retryTimer);
+    retryTimer = null;
   }
 }
 
 onMounted(() => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  retryTimer = setInterval(checkHealth, 5000); // 每 5 秒重試一次
+  retryTimer = setInterval(checkHealth, 5000);
+});
+
+onBeforeUnmount(() => {
+  clearRetry();
 });
 </script>
