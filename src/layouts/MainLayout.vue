@@ -146,12 +146,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
 import { useUserStore } from '../stores/userStore';
 import RegisterDialog from '../components/RegisterDialog.vue';
+import { api } from 'src/composables/axios';
+import { useQuasar } from 'quasar';
+
+const $q = useQuasar();
+
+onMounted(async () => {
+  if (!userStore.isLoggedIn && userStore.token) {
+    try {
+      const res = await api.get('/user/me', {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+        },
+      });
+      userStore.setUser(res.data); // 你可以定義 setUser 方法或手動設定 username 等值
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      $q.notify({ type: 'negative', message: '登入憑證已失效，請重新登入' });
+      await userStore.logout();
+      void router.push('/login');
+    }
+  }
+});
 
 const userStore = useUserStore();
 userStore.restore();
