@@ -34,22 +34,21 @@ export const useUserStore = defineStore('user', {
     },
 
     // 登出
-    async logout() {
+    async logout(skipApi = false) {
       const { api } = useApi();
       try {
-        if (this.token) {
+        if (this.token && !skipApi) {
           await api.post('/user/logout', null, {
             headers: {
               Authorization: `Bearer ${this.token}`,
             },
           });
-          console.log('成功登出');
         }
       } catch (err) {
         console.warn('登出失敗:', err);
       }
 
-      // 清除本地狀態
+      // 無論如何都要清掉本地狀態
       this.isLoggedIn = false;
       this.username = '';
       this.token = '';

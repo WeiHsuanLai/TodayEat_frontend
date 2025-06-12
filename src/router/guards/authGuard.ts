@@ -2,40 +2,49 @@ import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
 import { Notify } from 'quasar';
 import UserRole from 'src/enums/UserRole';
+import { api } from 'src/composables/axios';
 
-export function authGuard(
+export async function authGuard(
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
   const userStore = useUserStore();
-  console.log('目前使用者角色:', userStore.role);
 
+  // 還原狀態（例如從 localStorage 讀取）
   if (!userStore.isLoggedIn) {
-    userStore.restore(); // 還原 localStorage 狀態
+    userStore.restore();
   }
 
-  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    Notify.create({
-      type: 'warning',
-      message: '請先登入後再操作',
-      position: 'center',
-      timeout: 1500,
-    });
+  // 若需要登入，且尚未登入，或登入但 token 過期
+  if (to.meta.requiresAuth) {
+    if (!userStore.token) {
+      Notify.create({ type: 'warning', message: '請先登入', position: 'center' });
+      return next('/login');
+    }
 
-    return next('/'); // 或 next('/login')
+    try {
+      // 驗證 token 是否有效
+      const res = await api.get('/user/me', {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+        },
+      });
+      userStore.setUser(res.data); // 同步使用者資料
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      Notify.create({ type: 'negative', message: '登入憑證失效，請重新登入', position: 'center' });
+      await userStore.logout();
+      return next('/login');
+    }
   }
 
-  // 需要管理員但非管理員
+  // 若該路由需要管理員權限，但不是管理員
   if (to.meta.requiresAdmin && userStore.role !== UserRole.ADMIN) {
-    Notify.create({
-      type: 'negative',
-      message: '只有管理員可以存取此頁面，將自動返回首頁',
-      position: 'center',
-      timeout: 1500,
-    });
+    Notify.create({ type: 'negative', message: '無權限進入該頁面', position: 'center' });
     return next('/');
   }
 
+  // 通過驗證
   next();
 }
