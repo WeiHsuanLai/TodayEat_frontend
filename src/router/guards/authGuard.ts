@@ -46,7 +46,11 @@ export async function authGuard(
 
   // 若該路由需要管理員權限，但不是管理員
   if (to.meta.requiresAdmin && userStore.role !== UserRole.ADMIN) {
-    Notify.create({ type: 'negative', message: '無權限進入該頁面', position: 'center' });
+    Notify.create({
+      type: 'negative',
+      message: '無權限進入該頁面，將跳轉至首頁',
+      position: 'center',
+    });
     return next('/');
   }
 
