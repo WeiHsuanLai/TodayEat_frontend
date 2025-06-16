@@ -134,7 +134,7 @@ export default defineComponent({
         });
         console.log(res.data);
         const { token, user } = res.data;
-        userStore.login(res.data.user.account, token, user.role);
+        userStore.login(res.data.user.account, token, user.role, user.avatar);
 
         Notify.create({
           type: 'positive',

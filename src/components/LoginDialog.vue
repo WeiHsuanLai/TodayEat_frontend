@@ -176,6 +176,7 @@ export default defineComponent({
           username: res.data.user.account,
           token: res.data.token,
           role: res.data.user.role,
+          avatar: res.data.user.avatar,
         });
         show.value = false;
       } catch (err: unknown) {

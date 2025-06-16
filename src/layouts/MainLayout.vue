@@ -42,7 +42,7 @@
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
 
           <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
-            <img :src="userStore.avatarUrl" />
+            <img :src="userStore.avatar" />
           </q-avatar>
           <q-avatar v-else>
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
@@ -64,7 +64,7 @@
                 <div class="menu-margin">
                   <div class="column items-center">
                     <q-avatar v-if="userStore.isLoggedIn" size="32px">
-                      <img :src="userStore.avatarUrl" />
+                      <img :src="userStore.avatar" />
                     </q-avatar>
                     <q-avatar v-else>
                       <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
@@ -194,9 +194,10 @@ const userBtnRef = ref<HTMLElement | null>(null);
 // 登入
 const showLogin = ref(false);
 
-function handleLogin(data: { username: string; token: string; role: number }) {
+function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
+  console.log('avatar', data.avatar);
   if (typeof data.username !== 'string') return;
-  userStore.login(data.username, data.token, data.role);
+  userStore.login(data.username, data.token, data.role, data.avatar);
   showLogin.value = false;
 }
 

@@ -7,25 +7,26 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     isLoggedIn: false, // 是否已登入
     username: '', // 使用者帳號名稱
-    avatarUrl: '', // 頭像網址
+    avatar: '', // 頭像網址
     token: '', // JWT 或其他登入憑證
     role: null as number | null, // 使用者權限
   }),
   actions: {
     // 登入
-    login(username: string, token: string, role: number) {
+    login(username: string, token: string, role: number, avatar: string) {
       this.isLoggedIn = true;
       this.username = username;
       this.token = token;
       this.role = role;
-      this.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+      this.avatar = avatar;
+      console.log('this.avatar', this.avatar);
 
       // 將登入資料存入 localStorage（持久化）
       localStorage.setItem(
         'user',
         JSON.stringify({
           username: this.username,
-          avatarUrl: this.avatarUrl,
+          avatar: this.avatar,
           token: this.token,
           role: this.role,
           isLoggedIn: this.isLoggedIn,
@@ -53,7 +54,7 @@ export const useUserStore = defineStore('user', {
       this.username = '';
       this.token = '';
       this.role = null;
-      this.avatarUrl = '';
+      this.avatar = '';
       localStorage.removeItem('user');
     },
 
@@ -62,9 +63,17 @@ export const useUserStore = defineStore('user', {
       const data = localStorage.getItem('user');
       if (data) {
         const user = JSON.parse(data);
+
+        // 若欄位不完整，強制清除並跳通知
+        if (!user.username || !user.avatar) {
+          console.warn('[restore] user 欄位不完整，自動清除 localStorage');
+          localStorage.removeItem('user');
+          return;
+        }
+
         this.username = user.username;
-        this.avatarUrl =
-          user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+        this.avatar =
+          user.avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
         this.token = user.token;
         this.role = user.role;
         this.isLoggedIn = user.isLoggedIn;
@@ -72,10 +81,10 @@ export const useUserStore = defineStore('user', {
     },
 
     // 驗證成功後（例如透過 /user/me 拿回資料）更新使用者資訊
-    setUser(user: { username: string; role: number; token?: string }) {
+    setUser(user: { username: string; role: number; token?: string; avatar: string }) {
       this.username = user.username;
       this.role = user.role;
-      this.avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+      this.avatar = user.avatar;
       this.isLoggedIn = true;
 
       // 如果有新的 token 就更新，沒有就用原本的
@@ -87,7 +96,7 @@ export const useUserStore = defineStore('user', {
         'user',
         JSON.stringify({
           username: this.username,
-          avatarUrl: this.avatarUrl,
+          avatar: this.avatar,
           token: this.token,
           role: this.role,
           isLoggedIn: this.isLoggedIn,

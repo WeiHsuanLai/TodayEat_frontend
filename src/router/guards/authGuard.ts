@@ -12,7 +12,7 @@ export async function authGuard(
   const userStore = useUserStore();
 
   // 還原狀態（例如從 localStorage 讀取）
-  if (!userStore.isLoggedIn) {
+  if (!userStore.isLoggedIn && localStorage.getItem('user')) {
     userStore.restore();
   }
 
@@ -30,7 +30,12 @@ export async function authGuard(
           Authorization: `Bearer ${userStore.token}`,
         },
       });
-      userStore.setUser(res.data); // 同步使用者資料
+      userStore.setUser({
+        username: res.data.user.username,
+        role: res.data.user.role,
+        avatar: res.data.user.avatar?.trim() || userStore.avatar,
+        token: userStore.token,
+      });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       Notify.create({ type: 'negative', message: '登入憑證失效，請重新登入', position: 'center' });

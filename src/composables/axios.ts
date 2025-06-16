@@ -15,13 +15,16 @@ export const api = axios.create({
 
 // 🔐 自動附上 Authorization Header（如果存在 token）
 api.interceptors.request.use((config) => {
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    const token = JSON.parse(userData).token;
-    if (token) {
+  try {
+    const userData = localStorage.getItem('user');
+    const token = userData ? JSON.parse(userData)?.token : null;
+
+    if (typeof token === 'string' && token.trim()) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+  } catch (e) {
+    console.warn('[Axios interceptor] localStorage token 解析失敗', e);
   }
   return config;
 });
@@ -38,7 +41,7 @@ api.interceptors.response.use(
       getUserStore &&
       getRouter &&
       !isHandling401 &&
-      !extendedConfig._skip401Handler
+      !(extendedConfig && extendedConfig._skip401Handler === true)
     ) {
       isHandling401 = true;
 
@@ -75,3 +78,8 @@ export function setupApiContext(userStoreFn: typeof getUserStore, routerFn: type
 export const useApi = () => {
   return { api };
 };
+
+// 可為 axios 加上即時 header
+export function setAuthorization(token: string) {
+  api.defaults.headers.common.Authorization = `Bearer ${token}`;
+}
