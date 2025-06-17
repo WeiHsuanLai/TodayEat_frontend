@@ -10,6 +10,8 @@ export const useUserStore = defineStore('user', {
     avatar: '', // 頭像網址
     token: '', // JWT 或其他登入憑證
     role: null as number | null, // 使用者權限
+    showLoginModal: false,
+    loginRedirectPath: '',
   }),
   actions: {
     // 登入

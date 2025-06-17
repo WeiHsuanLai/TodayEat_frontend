@@ -146,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
@@ -176,6 +176,19 @@ const userBtnRef = ref<HTMLElement | null>(null);
 // 登入
 const showLogin = ref(false);
 
+watch(
+  () => userStore.showLoginModal,
+  (val) => {
+    showLogin.value = val;
+  },
+);
+
+watch(showLogin, (val) => {
+  if (!val) {
+    userStore.showLoginModal = false;
+  }
+});
+
 function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
   userStore.setUser({
     username: data.username,
@@ -184,6 +197,14 @@ function handleLogin(data: { username: string; token: string; role: number; avat
     avatar: data.avatar,
   });
   showLogin.value = false;
+
+  // ✅ 登入成功後導回原本頁面
+  if (userStore.loginRedirectPath) {
+    void router.push(userStore.loginRedirectPath);
+    userStore.loginRedirectPath = '';
+  } else {
+    void router.push('/');
+  }
 }
 
 // 註冊

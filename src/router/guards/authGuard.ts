@@ -19,8 +19,19 @@ export async function authGuard(
   // 若需要登入，且尚未登入，或登入但 token 過期
   if (to.meta.requiresAuth) {
     if (!userStore.token) {
-      Notify.create({ type: 'warning', message: '請先登入', position: 'center' });
-      return next('/login');
+      Notify.create({ type: 'warning', message: '請先登入', position: 'center', timeout: 1000 });
+
+      // ⬇️ 儲存使用者原本要去的頁面
+      userStore.loginRedirectPath = to.fullPath;
+
+      // ⬇️ 改導回首頁（或你預設顯示登入元件的頁面）
+      next('/');
+
+      // ⬇️ 延遲開啟登入彈窗
+      setTimeout(() => {
+        userStore.showLoginModal = true;
+      }, 100);
+      return;
     }
 
     try {
@@ -40,8 +51,15 @@ export async function authGuard(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       Notify.create({ type: 'negative', message: '登入憑證失效，請重新登入', position: 'center' });
-      await userStore.logout();
-      return next('/login');
+      // 改導回首頁或指定頁
+      next('/');
+
+      // 延遲開啟登入元件（等畫面渲染完）
+      setTimeout(() => {
+        userStore.showLoginModal = true;
+      }, 100);
+
+      return;
     }
   }
 
