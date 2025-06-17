@@ -27,11 +27,10 @@ onMounted(async () => {
 
   if (userStore.token) {
     try {
-      const res = await api.get('/user/me', {
+      const res = await api.get('/user/getCurrentUser', {
         _skip401Handler: true,
       } as AxiosRequestConfig);
-      console.log('userStore.token', res);
-      const user = res.data;
+      const user = res.data.user;
 
       // 如果 user.avatar 存在才用，否則維持原 avatar，不覆寫
       userStore.setUser({

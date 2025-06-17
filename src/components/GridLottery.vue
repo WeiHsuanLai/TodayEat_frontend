@@ -17,6 +17,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { api } from '../composables/axios';
 
 export default defineComponent({
   name: 'GridLottery',
@@ -77,7 +78,38 @@ export default defineComponent({
       this.timer = setTimeout(runStep, speed);
     },
     handleFinish(prize: { label: string }) {
+      const now = new Date();
+      const hour = now.getHours();
+      let meal: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+
+      if (hour >= 3 && hour < 11) {
+        meal = 'breakfast';
+      } else if (hour >= 11 && hour < 15) {
+        meal = 'lunch';
+      } else if (hour >= 15 && hour < 21) {
+        meal = 'dinner';
+      } else {
+        meal = 'midnight';
+      }
+
       console.log('🎉 恭喜你抽到：', prize.label);
+      const confirmed = window.confirm(`你抽中了「${prize.label}」，要記錄為 ${meal} 嗎？`);
+      // 將結果傳送至後端
+      if (!confirmed) {
+        console.log('🚫 使用者取消儲存');
+        return;
+      }
+      api
+        .post('/record/food-draw', {
+          meal,
+          food: prize.label,
+        })
+        .then((res) => {
+          console.log('✅ 餐點儲存成功', res.data);
+        })
+        .catch((err) => {
+          console.error('❌ 餐點儲存失敗', err);
+        });
     },
   },
   beforeUnmount() {

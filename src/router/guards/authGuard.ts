@@ -25,11 +25,12 @@ export async function authGuard(
 
     try {
       // 驗證 token 是否有效
-      const res = await api.get('/user/me', {
+      const res = await api.get('/user/getCurrentUser', {
         headers: {
           Authorization: `Bearer ${userStore.token}`,
         },
       });
+      console.log('登入回傳資料:', res.data);
       userStore.setUser({
         username: res.data.user.username,
         role: res.data.user.role,

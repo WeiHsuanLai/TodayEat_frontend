@@ -146,30 +146,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
 import { useUserStore } from '../stores/userStore';
 import RegisterDialog from '../components/RegisterDialog.vue';
-import { api } from '../composables/axios';
-import { useQuasar } from 'quasar';
-
-const $q = useQuasar();
-
-onMounted(async () => {
-  if (userStore.token && userStore.isLoggedIn) {
-    try {
-      await api.get('/user/me', {
-        headers: { Authorization: `Bearer ${userStore.token}` },
-      });
-    } catch {
-      $q.notify({ type: 'negative', message: '登入憑證已過期，已自動登出' });
-      await userStore.logout();
-      void router.push('/login');
-    }
-  }
-});
 
 const userStore = useUserStore();
 userStore.restore();
@@ -195,9 +177,12 @@ const userBtnRef = ref<HTMLElement | null>(null);
 const showLogin = ref(false);
 
 function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
-  console.log('avatar', data.avatar);
-  if (typeof data.username !== 'string') return;
-  userStore.login(data.username, data.token, data.role, data.avatar);
+  userStore.setUser({
+    username: data.username,
+    token: data.token,
+    role: data.role,
+    avatar: data.avatar,
+  });
   showLogin.value = false;
 }
 

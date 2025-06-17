@@ -16,8 +16,8 @@ export const api = axios.create({
 // 🔐 自動附上 Authorization Header（如果存在 token）
 api.interceptors.request.use((config) => {
   try {
-    const userData = localStorage.getItem('user');
-    const token = userData ? JSON.parse(userData)?.token : null;
+    const userStore = getUserStore?.();
+    const token = userStore?.token;
 
     if (typeof token === 'string' && token.trim()) {
       config.headers = config.headers || {};
@@ -81,5 +81,9 @@ export const useApi = () => {
 
 // 可為 axios 加上即時 header
 export function setAuthorization(token: string) {
-  api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  if (token && token.trim()) {
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+  }
 }

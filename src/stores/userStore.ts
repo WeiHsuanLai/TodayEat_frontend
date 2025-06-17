@@ -18,7 +18,7 @@ export const useUserStore = defineStore('user', {
       this.username = username;
       this.token = token;
       this.role = role;
-      this.avatar = avatar;
+      this.avatar = avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
       console.log('this.avatar', this.avatar);
 
       // 將登入資料存入 localStorage（持久化）
@@ -63,9 +63,8 @@ export const useUserStore = defineStore('user', {
       const data = localStorage.getItem('user');
       if (data) {
         const user = JSON.parse(data);
-
         // 若欄位不完整，強制清除並跳通知
-        if (!user.username || !user.avatar) {
+        if (!user.username || typeof user.username !== 'string') {
           console.warn('[restore] user 欄位不完整，自動清除 localStorage');
           localStorage.removeItem('user');
           return;
@@ -76,11 +75,11 @@ export const useUserStore = defineStore('user', {
           user.avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
         this.token = user.token;
         this.role = user.role;
-        this.isLoggedIn = user.isLoggedIn;
+        this.isLoggedIn = Boolean(user.token && user.username && typeof user.role === 'number');
       }
     },
 
-    // 驗證成功後（例如透過 /user/me 拿回資料）更新使用者資訊
+    // 驗證成功後（例如透過 /user/getCurrentUser 拿回資料）更新使用者資訊
     setUser(user: { username: string; role: number; token?: string; avatar: string }) {
       this.username = user.username;
       this.role = user.role;
