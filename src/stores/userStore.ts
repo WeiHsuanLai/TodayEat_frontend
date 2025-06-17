@@ -1,6 +1,7 @@
 // src/stores/userStore.ts
 import { defineStore } from 'pinia';
 import { useApi } from 'src/composables/axios';
+import { Notify } from 'quasar';
 
 // 這是建立一個名為 'user' 的 Pinia store，用來管理使用者登入狀態與基本資料。
 export const useUserStore = defineStore('user', {
@@ -12,6 +13,7 @@ export const useUserStore = defineStore('user', {
     role: null as number | null, // 使用者權限
     showLoginModal: false,
     loginRedirectPath: '',
+    pendingDraw: null as { meal: string; food: string } | null,
   }),
   actions: {
     // 登入
@@ -103,6 +105,47 @@ export const useUserStore = defineStore('user', {
           isLoggedIn: this.isLoggedIn,
         }),
       );
+
+      // ✅ 補送抽獎紀錄（如果有）
+      if (this.pendingDraw) {
+        const { api } = useApi();
+        api
+          .post('/record/food-draw', {
+            meal: this.pendingDraw.meal,
+            food: this.pendingDraw.food,
+          })
+          .then(() => {
+            console.log('✅ 自動補送抽獎成功');
+            Notify.create({
+              type: 'positive',
+              message: `🎉 已為你記錄推薦餐點：${this.pendingDraw!.food}`,
+              position: 'center',
+              timeout: 2000,
+            });
+          })
+          .catch((err) => {
+            console.error('❌ 自動補送抽獎失敗', err);
+            Notify.create({
+              type: 'negative',
+              message: '⚠️ 自動記錄失敗，請稍後再試',
+              position: 'center',
+              timeout: 2000,
+            });
+          })
+          .finally(() => {
+            this.clearPendingDraw();
+          });
+      }
+    },
+
+    // 紀錄抽獎資訊
+    setPendingDraw(meal: string, food: string) {
+      this.pendingDraw = { meal, food };
+    },
+
+    // 清除抽獎資訊
+    clearPendingDraw() {
+      this.pendingDraw = null;
     },
   },
 });

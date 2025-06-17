@@ -6,11 +6,12 @@
         :key="index"
         :class="['grid-item', { active: index === activeIndex }]"
       >
-        {{ item.label }}
+        <div class="label-text">{{ item.label }}</div>
+        <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
       </div>
     </div>
     <button class="start-btn" @click="startLottery" :disabled="isRunning">
-      {{ isRunning ? '抽獎中...' : '開始抽獎' }}
+      {{ isRunning ? '推薦中...' : '今日推薦' }}
     </button>
   </div>
 </template>
@@ -18,22 +19,60 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { api } from '../composables/axios';
+import { Notify, Dialog } from 'quasar';
+import { useUserStore } from 'src/stores/userStore';
 
 export default defineComponent({
   name: 'GridLottery',
   data() {
     return {
       prizes: [
-        { label: '台式料理' },
-        { label: '中式料理' },
-        { label: '日式料理' },
-        { label: '韓式料理' },
-        { label: '美式料理' },
-        { label: '義式料理' },
-        { label: '泰式料理' },
-        { label: '越南料理' },
-        { label: '印度料理' },
-        { label: '港式料理' },
+        {
+          label: '台式料理',
+          items: ['滷肉飯', '蚵仔麵線', '鹹酥雞'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '中式料理',
+          items: ['宮保雞丁', '糖醋里肌', '魚香茄子'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '日式料理',
+          items: ['壽司', '拉麵', '親子丼'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '韓式料理',
+          items: ['泡菜鍋', '石鍋拌飯', '辣炒年糕'],
+          selectedItem: null as string | null,
+        },
+        { label: '美式料理', items: ['漢堡', '炸雞', '熱狗'], selectedItem: null as string | null },
+        {
+          label: '義式料理',
+          items: ['義大利麵', '披薩', '燉飯'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '泰式料理',
+          items: ['打拋豬', '綠咖哩', '酸辣湯'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '越南料理',
+          items: ['河粉', '炸春捲', '牛肉飯'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '印度料理',
+          items: ['咖哩雞', '烤餅', '坦都燒烤'],
+          selectedItem: null as string | null,
+        },
+        {
+          label: '港式料理',
+          items: ['叉燒飯', '燒賣', '蘿蔔糕'],
+          selectedItem: null as string | null,
+        },
       ],
       activeIndex: -1,
       isRunning: false,
@@ -50,6 +89,7 @@ export default defineComponent({
   },
   methods: {
     startLottery() {
+      this.prizes.forEach((p) => (p.selectedItem = null));
       if (this.isRunning) return;
       this.isRunning = true;
 
@@ -59,25 +99,37 @@ export default defineComponent({
       const totalSteps = cycles * totalItems + finalIndex;
       let steps = 0;
       let speed = 80;
+      let prevIndex = -1;
 
       const runStep = () => {
-        this.activeIndex = (this.activeIndex + 1) % totalItems;
+        let nextIndex;
+        do {
+          nextIndex = Math.floor(Math.random() * totalItems);
+        } while (nextIndex === prevIndex);
+
+        this.activeIndex = nextIndex;
+        prevIndex = nextIndex;
         steps++;
 
         if (steps >= totalSteps) {
           if (this.timer) clearTimeout(this.timer);
           this.isRunning = false;
-          this.handleFinish(this.prizes[finalIndex]!);
+          this.activeIndex = finalIndex;
+          setTimeout(() => {
+            this.handleFinish(this.prizes[finalIndex]!);
+          }, 800);
         } else {
           if (steps > totalSteps * 0.7) speed += 10;
           if (steps > totalSteps * 0.85) speed += 15;
           this.timer = setTimeout(runStep, speed);
         }
       };
-
       this.timer = setTimeout(runStep, speed);
+      this.activeIndex = finalIndex;
     },
-    handleFinish(prize: { label: string }) {
+
+    handleFinish(prize: { selectedItem: string | null; label: string; items: string[] }) {
+      const userStore = useUserStore();
       const now = new Date();
       const hour = now.getHours();
       let meal: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
@@ -92,24 +144,54 @@ export default defineComponent({
         meal = 'midnight';
       }
 
-      console.log('🎉 恭喜你抽到：', prize.label);
-      const confirmed = window.confirm(`你抽中了「${prize.label}」，要記錄為 ${meal} 嗎？`);
-      // 將結果傳送至後端
-      if (!confirmed) {
-        console.log('🚫 使用者取消儲存');
-        return;
-      }
-      api
-        .post('/record/food-draw', {
-          meal,
-          food: prize.label,
-        })
-        .then((res) => {
-          console.log('✅ 餐點儲存成功', res.data);
-        })
-        .catch((err) => {
-          console.error('❌ 餐點儲存失敗', err);
-        });
+      const itemIndex = Math.floor(Math.random() * prize.items.length);
+      const selectedItem = prize.items[itemIndex] ?? null;
+      const fullFood = `${prize.label} - ${selectedItem}`;
+
+      // ✅ 顯示在抽中的格子上
+
+      prize.selectedItem = selectedItem;
+
+      Dialog.create({
+        title: `🍱 今日推薦：${prize.label}-${selectedItem}`,
+        message: `\n要記錄在會員資料中 ${meal} 嗎？`,
+        persistent: true,
+        ok: { label: '記錄', color: 'primary' },
+        cancel: { label: '取消', color: 'grey' },
+      }).onOk(() => {
+        if (!userStore.token) {
+          userStore.setPendingDraw(meal, fullFood);
+          userStore.showLoginModal = true;
+
+          Notify.create({
+            type: 'info',
+            message: '請先登入以記錄推薦',
+            position: 'center',
+            timeout: 1500,
+          });
+
+          return;
+        }
+
+        api
+          .post('/record/food-draw', { meal, food: fullFood })
+          .then(() => {
+            Notify.create({
+              type: 'positive',
+              message: `🍽️ 已記錄為：${selectedItem}`,
+              position: 'center',
+              timeout: 1500,
+            });
+          })
+          .catch(() => {
+            Notify.create({
+              type: 'negative',
+              message: '儲存失敗，請稍後再試',
+              position: 'center',
+              timeout: 1500,
+            });
+          });
+      });
     },
   },
   beforeUnmount() {
@@ -135,6 +217,7 @@ export default defineComponent({
 
 .grid-item {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background: #eee;
@@ -157,5 +240,36 @@ export default defineComponent({
   border: none;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.sub-text {
+  font-size: 14px;
+  color: #555;
+  margin-top: 4px;
+  .label-text {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .sub-text {
+    display: block;
+    font-size: 14px;
+    color: #555;
+    margin-top: 4px;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
