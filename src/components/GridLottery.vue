@@ -79,6 +79,9 @@ export default defineComponent({
       timer: null as ReturnType<typeof setTimeout> | null,
     };
   },
+  mounted() {
+    void this.loadTodayDraw();
+  },
   computed: {
     gridStyle(): Record<string, string> {
       const count = Math.ceil(Math.sqrt(this.prizes.length));
@@ -132,7 +135,15 @@ export default defineComponent({
       const userStore = useUserStore();
       const now = new Date();
       const hour = now.getHours();
-      let meal: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+
+      const mealMap: Record<'breakfast' | 'lunch' | 'dinner' | 'midnight', string> = {
+        breakfast: '早餐',
+        lunch: '午餐',
+        dinner: '晚餐',
+        midnight: '宵夜',
+      };
+
+      let meal: keyof typeof mealMap;
 
       if (hour >= 3 && hour < 11) {
         meal = 'breakfast';
@@ -154,7 +165,7 @@ export default defineComponent({
 
       Dialog.create({
         title: `🍱 今日推薦：${prize.label}-${selectedItem}`,
-        message: `\n要記錄在會員資料中 ${meal} 嗎？`,
+        message: `\n要記錄此${mealMap[meal]}嗎？`,
         persistent: true,
         ok: { label: '記錄', color: 'primary' },
         cancel: { label: '取消', color: 'grey' },
@@ -178,7 +189,7 @@ export default defineComponent({
           .then(() => {
             Notify.create({
               type: 'positive',
-              message: `🍽️ 已記錄為：${selectedItem}`,
+              message: `🍽️ 已記錄${selectedItem}`,
               position: 'center',
               timeout: 1500,
             });
@@ -192,6 +203,48 @@ export default defineComponent({
             });
           });
       });
+    },
+
+    async loadTodayDraw() {
+      const userStore = useUserStore();
+      if (!userStore.token) return;
+
+      try {
+        const res = await api.get('/record/food-draw/today', {
+          headers: { Authorization: `Bearer ${userStore.token}` },
+        });
+
+        const meals = res.data?.meals;
+        if (!meals) return;
+
+        const now = new Date();
+        const hour = now.getHours();
+
+        let meal: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+        if (hour >= 3 && hour < 11) {
+          meal = 'breakfast';
+        } else if (hour >= 11 && hour < 15) {
+          meal = 'lunch';
+        } else if (hour >= 15 && hour < 21) {
+          meal = 'dinner';
+        } else {
+          meal = 'midnight';
+        }
+
+        const record = meals[meal];
+        if (!record || !record.includes(' - ')) return;
+
+        const [label, selectedItem] = record.split(' - ');
+        const index = this.prizes.findIndex((p) => p.label.trim() === label.trim());
+
+        if (index !== -1) {
+          const prize = this.prizes[index]!;
+          prize.selectedItem = selectedItem;
+          this.activeIndex = index;
+        }
+      } catch (err) {
+        console.warn('[loadTodayDraw] 無法載入今日推薦', err);
+      }
     },
   },
   beforeUnmount() {
