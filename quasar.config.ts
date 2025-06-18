@@ -93,6 +93,9 @@ export default defineConfig((ctx) => {
           { server: false },
         ],
       ],
+      env: {
+        VITE_API: process.env.VITE_API, // 從系統環境變數注入
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
