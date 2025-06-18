@@ -162,8 +162,8 @@ export default defineComponent({
         });
 
         // 假設成功會有 token 或使用者資訊
-        console.log('✅ 登入成功');
-        console.log('res', res.data);
+        // console.log('✅ 登入成功');
+        // console.log('res', res.data);
 
         Notify.create({
           type: 'warning',

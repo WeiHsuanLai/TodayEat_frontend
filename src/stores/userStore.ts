@@ -60,6 +60,14 @@ export const useUserStore = defineStore('user', {
       this.role = null;
       this.avatar = '';
       localStorage.removeItem('user');
+
+      // 登出提醒
+      Notify.create({
+        type: 'positive',
+        message: '您已成功登出',
+        position: 'center',
+        timeout: 2000,
+      });
     },
 
     // 在頁面重新整理後還原使用者狀態
