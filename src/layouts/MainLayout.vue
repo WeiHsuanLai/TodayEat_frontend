@@ -75,7 +75,13 @@
                     {{ userStore.username }}
                   </div>
                 </div>
-
+                <q-btn
+                  flat
+                  color="dark"
+                  :label="'會員設定'"
+                  to="/setting"
+                  class="full-width justify-start q-px-md"
+                />
                 <q-btn
                   flat
                   color="primary"
