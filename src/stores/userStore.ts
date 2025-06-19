@@ -14,6 +14,7 @@ export const useUserStore = defineStore('user', {
     showLoginModal: false,
     loginRedirectPath: '',
     pendingDraw: null as { meal: string; food: string } | null,
+    customItems: [] as { label: string; items: string[] }[],
   }),
   actions: {
     // 登入
@@ -154,6 +155,29 @@ export const useUserStore = defineStore('user', {
     // 清除抽獎資訊
     clearPendingDraw() {
       this.pendingDraw = null;
+    },
+
+    async loadPrizes() {
+      const { api } = useApi();
+      try {
+        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
+
+        const config = this.token ? { headers: { Authorization: `Bearer ${this.token}` } } : {};
+
+        const res = await api.get(endpoint, config);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.customItems = res.data.map((p: any) => ({
+          label: p.label,
+          items: p.items,
+        }));
+      } catch (err) {
+        console.error('[loadPrizes] 載入失敗', err);
+        Notify.create({
+          type: 'negative',
+          message: '載入推薦料理失敗，請稍後再試',
+          position: 'center',
+        });
+      }
     },
   },
 });

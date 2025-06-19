@@ -29,63 +29,39 @@ export default defineComponent({
   name: 'GridLottery',
   data() {
     return {
-      prizes: [
-        {
-          label: '台式料理',
-          items: ['滷肉飯', '蚵仔麵線', '鹹酥雞'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '中式料理',
-          items: ['宮保雞丁', '糖醋里肌', '魚香茄子'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '日式料理',
-          items: ['壽司', '拉麵', '親子丼'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '韓式料理',
-          items: ['泡菜鍋', '石鍋拌飯', '辣炒年糕'],
-          selectedItem: null as string | null,
-        },
-        { label: '美式料理', items: ['漢堡', '炸雞', '熱狗'], selectedItem: null as string | null },
-        {
-          label: '義式料理',
-          items: ['義大利麵', '披薩', '燉飯'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '泰式料理',
-          items: ['打拋豬', '綠咖哩', '酸辣湯'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '越南料理',
-          items: ['河粉', '炸春捲', '牛肉飯'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '印度料理',
-          items: ['咖哩雞', '烤餅', '坦都燒烤'],
-          selectedItem: null as string | null,
-        },
-        {
-          label: '港式料理',
-          items: ['叉燒飯', '燒賣', '蘿蔔糕'],
-          selectedItem: null as string | null,
-        },
-      ],
+      prizes: [] as {
+        label: string;
+        items: string[];
+        selectedItem: string | null;
+      }[],
       activeIndex: -1,
       isRunning: false,
       timer: null as ReturnType<typeof setTimeout> | null,
     };
   },
+  watch: {
+    isLoggedIn(newVal: boolean, oldVal: boolean) {
+      if (newVal && !oldVal) {
+        // 登入後觸發重新載入
+        void this.loadPrizes().then(() => {
+          void this.loadTodayDraw();
+        });
+      }
+      if (!newVal) {
+        this.prizes.forEach((p) => (p.selectedItem = null));
+        console.log('[登出清除] selectedItem 已全部清空', this.prizes);
+      }
+    },
+  },
   mounted() {
-    void this.loadTodayDraw();
+    void this.loadPrizes().then(() => {
+      void this.loadTodayDraw(); // 等載入完料理後再載入已抽紀錄
+    });
   },
   computed: {
+    isLoggedIn(): boolean {
+      return useUserStore().token !== '';
+    },
     gridStyle(): Record<string, string> {
       const count = Math.ceil(Math.sqrt(this.prizes.length));
       return {
@@ -101,6 +77,43 @@ export default defineComponent({
     },
   },
   methods: {
+    async loadPrizes() {
+      try {
+        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
+        const config = this.isLoggedIn
+          ? { headers: { Authorization: `Bearer ${useUserStore().token}` } }
+          : {};
+
+        const res = await api.get(endpoint, config);
+
+        if (this.isLoggedIn) {
+          console.log('登入後回傳資料:', res.data);
+          const customItems = res.data?.customItems ?? {};
+          this.prizes = Object.entries(customItems).map(([label, items]) => ({
+            label,
+            items: items as string[],
+            selectedItem: null,
+          }));
+        } else {
+          console.log('登入前回傳資料:', res.data);
+          // ⚠️ 這裡是未登入時的格式：直接是一個陣列
+          const prizeArray = res.data ?? [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.prizes = prizeArray.map((item: any) => ({
+            label: item.label,
+            items: item.items,
+            selectedItem: null,
+          }));
+        }
+      } catch (err) {
+        Notify.create({
+          type: 'negative',
+          message: '無法載入料理清單',
+          position: 'center',
+        });
+        console.error('loadPrizes failed:', err);
+      }
+    },
     startLottery() {
       this.prizes.forEach((p) => (p.selectedItem = null));
       if (this.isRunning) return;
@@ -271,10 +284,11 @@ export default defineComponent({
 }
 
 .grid {
+  width: 90vw;
+  max-width: 350px;
+  aspect-ratio: 1;
   display: grid;
   gap: 10px;
-  width: 60vh;
-  height: 60vh;
   margin-bottom: 20px;
 }
 
