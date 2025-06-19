@@ -354,19 +354,47 @@ export default defineComponent({
       this.dialog.targetPrize = latest;
       this.dialog.model = true;
     },
-    addDish() {
+    async addDish() {
       const name = this.dialog.newItem.trim();
-      if (name && !this.dialog.items.includes(name)) {
-        this.dialog.items.push(name);
-        this.dialog.newItem = '';
-      }
-    },
+      if (!name || this.dialog.items.includes(name)) return;
 
+      this.dialog.items.push(name);
+      this.dialog.newItem = '';
+
+      // ✅ 若已登入，將新增項目同步寫入後端
+      if (this.isLoggedIn) {
+        try {
+          await api.post(
+            '/user/custom-items',
+            {
+              label: this.dialog.label,
+              item: name,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${useUserStore().token}`,
+              },
+            },
+          );
+          console.log(`✅ 已同步新增「${name}」至後端`);
+        } catch (err) {
+          Notify.create({
+            type: 'warning',
+            message: `⚠️ 無法儲存 ${name}，已暫存於前端`,
+          });
+          console.warn('🔧 新增料理儲存失敗：', err);
+        }
+      }
+      console.log('[addDish] isLoggedIn:', this.isLoggedIn);
+
+      console.log('[addDish] label:', this.dialog.label, 'name:', name);
+    },
     removeDish(index: number) {
       this.dialog.items.splice(index, 1);
     },
 
     saveDishEdit() {
+      void this.addDish();
       const label = this.dialog.label.trim();
 
       // ⬇️ 如果輸入框還有新內容，先補進 dialog.items
