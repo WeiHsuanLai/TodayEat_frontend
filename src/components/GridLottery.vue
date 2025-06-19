@@ -7,6 +7,8 @@
           v-for="(item, index) in prizes"
           :key="index"
           :class="['grid-item', { active: index === activeIndex }]"
+          :title="item.items.join(', ')"
+          @click="showItemDetail(item)"
         >
           <div class="label-text">{{ item.label }}</div>
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
@@ -16,6 +18,37 @@
         {{ isRunning ? '推薦中...' : '今日推薦' }}
       </button>
     </div>
+    <q-dialog v-model="dialog.model">
+      <q-card style="min-width: 300px; max-width: 90vw">
+        <q-card-section>
+          <div class="text-h6">{{ dialog.label }} 的料理管理</div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-gutter-y-sm">
+          <q-item v-for="(dish, i) in dialog.items" :key="i" dense>
+            <q-item-section>{{ dish }}</q-item-section>
+            <q-item-section side>
+              <q-btn dense flat icon="delete" color="red" @click="removeDish(i)" />
+            </q-item-section>
+          </q-item>
+
+          <q-input
+            v-model="dialog.newItem"
+            dense
+            placeholder="輸入新料理"
+            @keyup.enter="addDish"
+            outlined
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="取消" color="grey" @click="dialog.model = false" />
+          <q-btn flat label="儲存" color="primary" @click="saveDishEdit" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -37,6 +70,17 @@ export default defineComponent({
       activeIndex: -1,
       isRunning: false,
       timer: null as ReturnType<typeof setTimeout> | null,
+      dialog: {
+        model: false,
+        label: '',
+        items: [] as string[],
+        newItem: '',
+        targetPrize: null as null | {
+          label: string;
+          items: string[];
+          selectedItem: string | null;
+        },
+      },
     };
   },
 
@@ -122,6 +166,18 @@ export default defineComponent({
     startLottery() {
       this.prizes.forEach((p) => (p.selectedItem = null));
       if (this.isRunning) return;
+
+      // ✅ 先過濾掉沒有料理的項目
+      const validPrizes = this.prizes.filter((p) => p.items.length > 0);
+      if (validPrizes.length === 0) {
+        Notify.create({
+          type: 'warning',
+          message: '目前沒有可抽的料理，請先新增！',
+          position: 'center',
+        });
+        return;
+      }
+
       this.isRunning = true;
 
       const totalItems = this.prizes.length;
@@ -273,6 +329,36 @@ export default defineComponent({
       } catch (err) {
         console.warn('[loadTodayDraw] 無法載入今日推薦', err);
       }
+    },
+
+    showItemDetail(item: (typeof this.prizes)[number]) {
+      this.dialog.label = item.label;
+      this.dialog.items = [...item.items];
+      this.dialog.newItem = '';
+      this.dialog.targetPrize = item;
+      this.dialog.model = true;
+    },
+    addDish() {
+      const name = this.dialog.newItem.trim();
+      if (name && !this.dialog.items.includes(name)) {
+        this.dialog.items.push(name);
+        this.dialog.newItem = '';
+      }
+    },
+
+    removeDish(index: number) {
+      this.dialog.items.splice(index, 1);
+    },
+
+    saveDishEdit() {
+      if (this.dialog.targetPrize) {
+        this.dialog.targetPrize.items = [...this.dialog.items];
+        Notify.create({
+          type: 'positive',
+          message: `✅ 已更新 ${this.dialog.label}`,
+        });
+      }
+      this.dialog.model = false;
     },
   },
   beforeUnmount() {
