@@ -39,20 +39,25 @@ export default defineComponent({
       timer: null as ReturnType<typeof setTimeout> | null,
     };
   },
+
   watch: {
     isLoggedIn(newVal: boolean, oldVal: boolean) {
       if (newVal && !oldVal) {
-        // 登入後觸發重新載入
+        // ✅ 登入成功後載入新資料
         void this.loadPrizes().then(() => {
           void this.loadTodayDraw();
         });
       }
       if (!newVal) {
-        this.prizes.forEach((p) => (p.selectedItem = null));
-        console.log('[登出清除] selectedItem 已全部清空', this.prizes);
+        // ✅ 登出後清除所有資料與狀態
+        this.prizes = [];
+        this.activeIndex = -1;
+        void this.loadPrizes();
+        console.log('[登出清除]  已載入預設料理清單');
       }
     },
   },
+
   mounted() {
     void this.loadPrizes().then(() => {
       void this.loadTodayDraw(); // 等載入完料理後再載入已抽紀錄
