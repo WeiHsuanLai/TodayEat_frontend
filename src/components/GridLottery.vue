@@ -1,18 +1,21 @@
 <template>
-  <div class="lottery-container">
-    <div class="grid" :style="gridStyle">
-      <div
-        v-for="(item, index) in prizes"
-        :key="index"
-        :class="['grid-item', { active: index === activeIndex }]"
-      >
-        <div class="label-text">{{ item.label }}</div>
-        <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
+  <div>
+    <div class="text-h4 text-center q-ma-sm">目前時段:{{ currentMeal }}</div>
+    <div class="lottery-container">
+      <div class="grid" :style="gridStyle">
+        <div
+          v-for="(item, index) in prizes"
+          :key="index"
+          :class="['grid-item', { active: index === activeIndex }]"
+        >
+          <div class="label-text">{{ item.label }}</div>
+          <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
+        </div>
       </div>
+      <button class="start-btn" @click="startLottery" :disabled="isRunning">
+        {{ isRunning ? '推薦中...' : '今日推薦' }}
+      </button>
     </div>
-    <button class="start-btn" @click="startLottery" :disabled="isRunning">
-      {{ isRunning ? '推薦中...' : '今日推薦' }}
-    </button>
   </div>
 </template>
 
@@ -88,6 +91,13 @@ export default defineComponent({
       return {
         gridTemplateColumns: `repeat(${count}, 1fr)`,
       };
+    },
+    currentMeal(): string {
+      const hour = new Date().getHours();
+      if (hour >= 3 && hour < 11) return '早餐';
+      if (hour >= 11 && hour < 15) return '午餐';
+      if (hour >= 15 && hour < 21) return '晚餐';
+      return '宵夜';
     },
   },
   methods: {
@@ -263,8 +273,8 @@ export default defineComponent({
 .grid {
   display: grid;
   gap: 10px;
-  width: 480px;
-  height: 400px;
+  width: 60vh;
+  height: 60vh;
   margin-bottom: 20px;
 }
 
@@ -275,7 +285,7 @@ export default defineComponent({
   align-items: center;
   background: #eee;
   border: 2px solid #ccc;
-  font-size: 16px;
+  font-size: 1vw;
   font-weight: bold;
   transition: all 0.3s;
 }

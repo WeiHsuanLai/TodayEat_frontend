@@ -84,6 +84,13 @@
                 />
                 <q-btn
                   flat
+                  color="dark"
+                  :label="'抽取歷史'"
+                  to="/FoodDrawHistory"
+                  class="full-width justify-start q-px-md"
+                />
+                <q-btn
+                  flat
                   color="primary"
                   :label="t('signout')"
                   @click="logout"
