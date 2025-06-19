@@ -14,9 +14,14 @@
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
         </div>
       </div>
-      <button class="start-btn" @click="startLottery" :disabled="isRunning">
-        {{ isRunning ? '推薦中...' : '今日推薦' }}
-      </button>
+      <div>
+        <button class="start-btn q-ma-sm" @click="startLottery" :disabled="isRunning">
+          {{ isRunning ? '推薦中...' : '今日推薦' }}
+        </button>
+        <button class="start-btn q-ma-sm" @click="resetToDefault" :disabled="isRunning">
+          重置
+        </button>
+      </div>
     </div>
     <q-dialog v-model="dialog.model">
       <q-card style="min-width: 300px; max-width: 90vw">
@@ -146,6 +151,13 @@ export default defineComponent({
         } else {
           console.log('登入前回傳資料:', res.data);
           // ⚠️ 這裡是未登入時的格式：直接是一個陣列
+          const stored = localStorage.getItem('guestPrizes');
+          if (stored) {
+            this.prizes = JSON.parse(stored);
+            console.log('載入 localStorage 中的未登入料理列表');
+            return;
+          }
+
           const prizeArray = res.data ?? [];
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           this.prizes = prizeArray.map((item: any) => ({
@@ -181,7 +193,7 @@ export default defineComponent({
       this.isRunning = true;
 
       const totalItems = this.prizes.length;
-      const finalIndex = Math.floor(Math.random() * totalItems);
+      const finalIndex = Math.floor(Math.random() * validPrizes.length);
       const cycles = 3;
       const totalSteps = cycles * totalItems + finalIndex;
       let steps = 0;
@@ -332,10 +344,14 @@ export default defineComponent({
     },
 
     showItemDetail(item: (typeof this.prizes)[number]) {
-      this.dialog.label = item.label;
-      this.dialog.items = [...item.items];
+      const latest = this.prizes.find((p) => p.label === item.label);
+      console.log('🧐 開啟 Dialog，當前料理為：', latest);
+      if (!latest) return;
+
+      this.dialog.label = latest.label;
+      this.dialog.items = [...latest.items];
       this.dialog.newItem = '';
-      this.dialog.targetPrize = item;
+      this.dialog.targetPrize = latest;
       this.dialog.model = true;
     },
     addDish() {
@@ -351,14 +367,83 @@ export default defineComponent({
     },
 
     saveDishEdit() {
+      const label = this.dialog.label.trim();
+
+      // ⬇️ 如果輸入框還有新內容，先補進 dialog.items
+      const newDish = this.dialog.newItem.trim();
+      if (newDish && !this.dialog.items.includes(newDish)) {
+        this.dialog.items.push(newDish);
+        this.dialog.newItem = '';
+      }
+
+      const newItems = [...this.dialog.items];
+
+      const prize = this.prizes.find((p) => p.label.trim() === label);
+      if (!prize) {
+        Notify.create({ type: 'negative', message: '找不到對應的料理分類！' });
+        return;
+      }
+
+      prize.items = newItems;
+
       if (this.dialog.targetPrize) {
-        this.dialog.targetPrize.items = [...this.dialog.items];
+        this.dialog.targetPrize.items = newItems;
+      }
+
+      if (!this.isLoggedIn) {
+        try {
+          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+          console.log('🔄 寫入 localStorage 成功:', JSON.stringify(this.prizes));
+        } catch (err) {
+          console.error('❌ 寫入 localStorage 失敗', err);
+        }
+      }
+
+      console.log('🧾 localStorage 目前內容：', localStorage.getItem('guestPrizes'));
+
+      Notify.create({
+        type: 'positive',
+        message: `✅ 已更新 ${label}`,
+      });
+
+      this.dialog.model = false;
+    },
+
+    async resetToDefault() {
+      if (this.isLoggedIn) {
+        Notify.create({
+          type: 'info',
+          message: '登入狀態無法重置為預設，請手動編輯料理內容',
+          position: 'center',
+        });
+        return;
+      }
+
+      try {
+        const res = await api.get('/prizes');
+        const prizeArray = res.data ?? [];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.prizes = prizeArray.map((item: any) => ({
+          label: item.label,
+          items: item.items,
+          selectedItem: null,
+        }));
+
+        localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
         Notify.create({
           type: 'positive',
-          message: `✅ 已更新 ${this.dialog.label}`,
+          message: '✅ 已重置為預設料理清單',
+          position: 'center',
         });
+      } catch (err) {
+        Notify.create({
+          type: 'negative',
+          message: '❌ 重置失敗，請稍後再試',
+          position: 'center',
+        });
+        console.error('[resetToDefault] 發生錯誤：', err);
       }
-      this.dialog.model = false;
     },
   },
   beforeUnmount() {
