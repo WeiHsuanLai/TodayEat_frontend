@@ -285,7 +285,7 @@ export default defineComponent({
   align-items: center;
   background: #eee;
   border: 2px solid #ccc;
-  font-size: 1vw;
+  font-size: 0.9rem;
   font-weight: bold;
   transition: all 0.3s;
 }
@@ -297,7 +297,7 @@ export default defineComponent({
 
 .start-btn {
   padding: 10px 20px;
-  font-size: 18px;
+  font-size: 1.2rem;
   background: #2cb0ac;
   color: white;
   border: none;
