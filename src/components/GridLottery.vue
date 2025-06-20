@@ -31,13 +31,17 @@
             @click="showItemDetail(item)"
           />
         </div>
+        <div class="grid-item add-new" @click="openNewCategoryDialog">
+          <q-icon name="add" size="md" color="primary" />
+          <div class="label-text">新增分類</div>
+        </div>
       </div>
       <div>
         <button class="start-btn q-ma-sm" @click="startLottery" :disabled="isRunning">
           {{ isRunning ? '推薦中...' : '今日推薦' }}
         </button>
         <button class="start-btn q-ma-sm" @click="resetToDefault" :disabled="isRunning">
-          重置料理項目
+          重置餐點項目
         </button>
       </div>
     </div>
@@ -69,6 +73,42 @@
         <q-card-actions align="right">
           <q-btn flat label="取消" color="grey" @click="dialog.model = false" />
           <q-btn flat label="儲存" color="primary" @click="saveDishEdit" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="newCategoryDialog">
+      <q-card style="min-width: 300px; max-width: 90vw">
+        <q-card-section>
+          <div class="text-h6">新增料理</div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-gutter-y-sm">
+          <q-input v-model="newCategoryLabel" placeholder="輸入分類名稱" dense outlined />
+
+          <div class="text-subtitle2 q-mt-sm">料理項目</div>
+
+          <q-item v-for="(dish, i) in newCategoryItems" :key="i" dense class="q-px-none">
+            <q-item-section>{{ dish }}</q-item-section>
+            <q-item-section side>
+              <q-btn dense flat icon="delete" color="red" @click="newCategoryItems.splice(i, 1)" />
+            </q-item-section>
+          </q-item>
+
+          <q-input
+            v-model="newCategoryNewItem"
+            dense
+            outlined
+            placeholder="輸入新料理（按 Enter 加入）"
+            @keyup.enter="addNewCategoryDish"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="取消" color="grey" @click="newCategoryDialog = false" />
+          <q-btn flat label="新增" color="primary" @click="createNewCategory" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -104,6 +144,10 @@ export default defineComponent({
           selectedItem: string | null;
         },
       },
+      newCategoryDialog: false,
+      newCategoryLabel: '',
+      newCategoryItems: [] as string[],
+      newCategoryNewItem: '',
     };
   },
 
@@ -601,6 +645,55 @@ export default defineComponent({
           }
         }
       });
+    },
+
+    openNewCategoryDialog() {
+      this.newCategoryLabel = '';
+      this.newCategoryDialog = true;
+    },
+
+    async createNewCategory() {
+      const label = this.newCategoryLabel.trim();
+      if (!label) return;
+
+      const items = [...this.newCategoryItems];
+
+      const newPrize = {
+        label,
+        items,
+        selectedItem: null,
+      };
+
+      this.prizes.push(newPrize);
+      this.newCategoryDialog = false;
+      this.newCategoryItems = [];
+      this.newCategoryLabel = '';
+      this.newCategoryNewItem = '';
+
+      if (this.isLoggedIn) {
+        try {
+          await api.post(
+            '/user/custom-item/label',
+            { label, items },
+            { headers: { Authorization: `Bearer ${useUserStore().token}` } },
+          );
+          Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
+        } catch (err) {
+          Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
+          console.error('新增分類錯誤：', err);
+        }
+      } else {
+        localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+        Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
+      }
+    },
+
+    addNewCategoryDish() {
+      const name = this.newCategoryNewItem.trim();
+      if (!name || this.newCategoryItems.includes(name)) return;
+
+      this.newCategoryItems.push(name);
+      this.newCategoryNewItem = '';
     },
   },
   beforeUnmount() {
