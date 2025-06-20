@@ -10,6 +10,15 @@
           :title="item.items.join(', ')"
           @click="showItemDetail(item)"
         >
+          <q-btn
+            dense
+            round
+            flat
+            icon="close"
+            class="delete-btn"
+            color="red"
+            @click.stop="deletePrize(index)"
+          />
           <div class="label-text">{{ item.label }}</div>
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
         </div>
@@ -501,6 +510,54 @@ export default defineComponent({
         console.error('[resetToDefault][未登入] 發生錯誤：', err);
       }
     },
+
+    deletePrize(index: number) {
+      const prize = this.prizes[index];
+      if (!prize) return;
+
+      const label = prize.label;
+
+      Dialog.create({
+        title: '刪除確認',
+        message: `是否刪除「${label}」這個料理類別？`,
+        ok: { label: '刪除', color: 'red' },
+        cancel: { label: '取消', color: 'grey' },
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      }).onOk(async () => {
+        this.prizes.splice(index, 1);
+
+        if (this.isLoggedIn) {
+          try {
+            await api.delete('/user/custom-item/label', {
+              data: { label }, // DELETE 方法的 payload 需放 data 屬性
+              headers: {
+                Authorization: `Bearer ${useUserStore().token}`,
+              },
+            });
+            Notify.create({
+              type: 'positive',
+              message: `✅ 已刪除 ${label}`,
+            });
+          } catch (err) {
+            Notify.create({
+              type: 'warning',
+              message: `⚠️ 後端刪除 ${label} 失敗（已從前端移除）`,
+            });
+            console.warn(`[刪除失敗] label=${label}`, err);
+          }
+        } else {
+          try {
+            localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+            Notify.create({
+              type: 'positive',
+              message: `✅ 已刪除 ${label}`,
+            });
+          } catch (err) {
+            console.error('❌ localStorage 更新失敗：', err);
+          }
+        }
+      });
+    },
   },
   beforeUnmount() {
     if (this.timer) clearTimeout(this.timer);
@@ -525,6 +582,7 @@ export default defineComponent({
 }
 
 .grid-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -534,6 +592,13 @@ export default defineComponent({
   font-size: 0.9rem;
   font-weight: bold;
   transition: all 0.3s;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 10;
 }
 
 .grid-item.active {
