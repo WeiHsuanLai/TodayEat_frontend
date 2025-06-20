@@ -48,7 +48,7 @@
     <q-dialog v-model="dialog.model">
       <q-card style="min-width: 300px; max-width: 90vw">
         <q-card-section>
-          <div class="text-h6">{{ dialog.label }} 的料理管理</div>
+          <div class="text-h6">{{ dialog.label }}項目</div>
         </q-card-section>
 
         <q-separator />
@@ -64,7 +64,7 @@
           <q-input
             v-model="dialog.newItem"
             dense
-            placeholder="輸入新料理"
+            placeholder="Enter可輸入新料理"
             @keyup.enter="addDish"
             outlined
           />
