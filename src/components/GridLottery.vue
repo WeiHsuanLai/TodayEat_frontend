@@ -439,14 +439,42 @@ export default defineComponent({
 
     async resetToDefault() {
       if (this.isLoggedIn) {
-        Notify.create({
-          type: 'info',
-          message: '登入狀態無法重置為預設，請手動編輯料理內容',
-          position: 'center',
-        });
+        try {
+          const res = await api.post(
+            '/user/custom-items/reset',
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${useUserStore().token}`,
+              },
+            },
+          );
+
+          const customItems = res.data?.customItems ?? {};
+          this.prizes = Object.entries(customItems).map(([label, items]) => ({
+            label,
+            items: items as string[],
+            selectedItem: null,
+          }));
+
+          Notify.create({
+            type: 'positive',
+            message: '✅ 已重置為預設料理清單',
+            position: 'center',
+          });
+        } catch (err) {
+          Notify.create({
+            type: 'negative',
+            message: '❌ 重置失敗，請稍後再試',
+            position: 'center',
+          });
+          console.error('[resetToDefault][登入模式] 發生錯誤：', err);
+        }
+
         return;
       }
 
+      // 未登入（guest 模式）
       try {
         const res = await api.get('/prizes');
         const prizeArray = res.data ?? [];
@@ -470,7 +498,7 @@ export default defineComponent({
           message: '❌ 重置失敗，請稍後再試',
           position: 'center',
         });
-        console.error('[resetToDefault] 發生錯誤：', err);
+        console.error('[resetToDefault][未登入] 發生錯誤：', err);
       }
     },
   },
