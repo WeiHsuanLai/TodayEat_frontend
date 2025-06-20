@@ -41,10 +41,10 @@
 
           <!-- 已登入顯示使用者名稱與頭像下拉 -->
 
-          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm">
+          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm" color="blue-2">
             <img :src="userStore.avatar" />
           </q-avatar>
-          <q-avatar v-else>
+          <q-avatar v-else color="blue-2">
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
           </q-avatar>
 
