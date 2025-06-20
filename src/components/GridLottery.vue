@@ -7,14 +7,16 @@
           v-for="(item, index) in prizes"
           :key="index"
           :class="['grid-item', { active: index === activeIndex }]"
+          size="sm"
           :title="item.items.join(', ')"
           @click="showItemDetail(item)"
         >
           <q-btn
-            dense
-            round
-            flat
+            size="xs"
             icon="close"
+            flat
+            round
+            dense
             class="delete-btn"
             color="red"
             @click.stop="deletePrize(index)"

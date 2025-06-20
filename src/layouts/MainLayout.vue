@@ -12,7 +12,7 @@
         <div
           class="absolute full-height flex items-center justify-center text-h6 text-weight-bold text-white xs-hide"
           style="left: 50%; transform: translateX(-50%); cursor: pointer"
-          @click="goHome"
+          @click="goHome()"
         >
           🍉{{ t('appTitle') }}🍖
         </div>
@@ -165,6 +165,7 @@ import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
 import { useUserStore } from '../stores/userStore';
 import RegisterDialog from '../components/RegisterDialog.vue';
+import { useUIStore } from 'src/stores/ui';
 
 const userStore = useUserStore();
 userStore.restore();
@@ -179,8 +180,13 @@ function toggleLeftDrawer() {
 
 // 中上logo回首頁
 const router = useRouter();
+const uiStore = useUIStore();
 function goHome() {
-  void router.push('/');
+  if (router.currentRoute.value.path === '/') {
+    uiStore.refreshGridLottery(); // ✅ 刷新 GridLottery
+  } else {
+    void router.push('/');
+  }
 }
 
 // 調整登出下拉選單寬度
