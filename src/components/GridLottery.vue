@@ -9,7 +9,6 @@
           :class="['grid-item', { active: index === activeIndex }]"
           size="sm"
           :title="item.items.join(', ')"
-          @click="showItemDetail(item)"
         >
           <q-btn
             size="xs"
@@ -23,6 +22,14 @@
           />
           <div class="label-text">{{ item.label }}</div>
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
+          <q-btn
+            icon="add"
+            color="primary"
+            class="q-my-xs"
+            round
+            size="xs"
+            @click="showItemDetail(item)"
+          />
         </div>
       </div>
       <div>
