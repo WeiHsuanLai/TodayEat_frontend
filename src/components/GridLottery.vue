@@ -30,7 +30,7 @@
           {{ isRunning ? '推薦中...' : '今日推薦' }}
         </button>
         <button class="start-btn q-ma-sm" @click="resetToDefault" :disabled="isRunning">
-          重置
+          重置料理項目
         </button>
       </div>
     </div>
@@ -448,71 +448,76 @@ export default defineComponent({
       this.dialog.model = false;
     },
 
-    async resetToDefault() {
-      if (this.isLoggedIn) {
-        try {
-          const res = await api.post(
-            '/user/custom-items/reset',
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${useUserStore().token}`,
+    resetToDefault() {
+      Dialog.create({
+        title: '重置確認',
+        message: '是否清除自訂的料理項目並還原為預設？',
+        ok: { label: '確定', color: 'primary' },
+        cancel: { label: '取消', color: 'grey' },
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      }).onOk(async () => {
+        if (this.isLoggedIn) {
+          try {
+            const res = await api.post(
+              '/user/custom-items/reset',
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${useUserStore().token}`,
+                },
               },
-            },
-          );
+            );
 
-          const customItems = res.data?.customItems ?? {};
-          this.prizes = Object.entries(customItems).map(([label, items]) => ({
-            label,
-            items: items as string[],
-            selectedItem: null,
-          }));
+            const customItems = res.data?.customItems ?? {};
+            this.prizes = Object.entries(customItems).map(([label, items]) => ({
+              label,
+              items: items as string[],
+              selectedItem: null,
+            }));
 
-          Notify.create({
-            type: 'positive',
-            message: '✅ 已重置為預設料理清單',
-            position: 'center',
-          });
-        } catch (err) {
-          Notify.create({
-            type: 'negative',
-            message: '❌ 重置失敗，請稍後再試',
-            position: 'center',
-          });
-          console.error('[resetToDefault][登入模式] 發生錯誤：', err);
+            Notify.create({
+              type: 'positive',
+              message: '✅ 已重置為預設料理清單',
+              position: 'center',
+            });
+          } catch (err) {
+            Notify.create({
+              type: 'negative',
+              message: '❌ 重置失敗，請稍後再試',
+              position: 'center',
+            });
+            console.error('[resetToDefault][登入模式] 發生錯誤：', err);
+          }
+        } else {
+          // 未登入（guest 模式）
+          try {
+            const res = await api.get('/prizes');
+            const prizeArray = res.data ?? [];
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.prizes = prizeArray.map((item: any) => ({
+              label: item.label,
+              items: item.items,
+              selectedItem: null,
+            }));
+
+            localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+            Notify.create({
+              type: 'positive',
+              message: '✅ 已重置為預設料理清單',
+              position: 'center',
+            });
+          } catch (err) {
+            Notify.create({
+              type: 'negative',
+              message: '❌ 重置失敗，請稍後再試',
+              position: 'center',
+            });
+            console.error('[resetToDefault][未登入] 發生錯誤：', err);
+          }
         }
-
-        return;
-      }
-
-      // 未登入（guest 模式）
-      try {
-        const res = await api.get('/prizes');
-        const prizeArray = res.data ?? [];
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.prizes = prizeArray.map((item: any) => ({
-          label: item.label,
-          items: item.items,
-          selectedItem: null,
-        }));
-
-        localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-        Notify.create({
-          type: 'positive',
-          message: '✅ 已重置為預設料理清單',
-          position: 'center',
-        });
-      } catch (err) {
-        Notify.create({
-          type: 'negative',
-          message: '❌ 重置失敗，請稍後再試',
-          position: 'center',
-        });
-        console.error('[resetToDefault][未登入] 發生錯誤：', err);
-      }
+      });
     },
-
     deletePrize(index: number) {
       const prize = this.prizes[index];
       if (!prize) return;
