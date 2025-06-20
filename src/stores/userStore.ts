@@ -15,6 +15,7 @@ export const useUserStore = defineStore('user', {
     loginRedirectPath: '',
     pendingDraw: null as { meal: string; food: string } | null,
     customItems: [] as { label: string; items: string[] }[],
+    foodDrawToday: {} as Record<'breakfast' | 'lunch' | 'dinner' | 'midnight', string | undefined>,
   }),
   actions: {
     // 登入

@@ -187,10 +187,37 @@ export default defineComponent({
       }
     },
     startLottery() {
+      const userStore = useUserStore();
+      const now = new Date();
+      const hour = now.getHours();
+
+      let mealKey: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+      if (hour >= 3 && hour < 11) mealKey = 'breakfast';
+      else if (hour >= 11 && hour < 15) mealKey = 'lunch';
+      else if (hour >= 15 && hour < 21) mealKey = 'dinner';
+      else mealKey = 'midnight';
+
+      const oldDraw = userStore.foodDrawToday?.[mealKey]; // ⬅ 確保 mealKey 先定義好再取值
+
+      if (oldDraw) {
+        Dialog.create({
+          title: '已有推薦紀錄',
+          message: `目前時段您已抽過餐點：${oldDraw}\n是否要重新抽取？`,
+          ok: { label: '是，重新抽取', color: 'primary' },
+          cancel: { label: '取消', color: 'grey' },
+        }).onOk(() => {
+          this.runLottery();
+        });
+        return;
+      }
+
+      this.runLottery();
+    },
+
+    runLottery() {
       this.prizes.forEach((p) => (p.selectedItem = null));
       if (this.isRunning) return;
 
-      // ✅ 先過濾掉沒有料理的項目
       const validPrizes = this.prizes.filter((p) => p.items.length > 0);
       if (validPrizes.length === 0) {
         Notify.create({
@@ -202,7 +229,6 @@ export default defineComponent({
       }
 
       this.isRunning = true;
-
       const totalItems = this.prizes.length;
       const finalIndex = Math.floor(Math.random() * validPrizes.length);
       const cycles = 3;
@@ -234,6 +260,7 @@ export default defineComponent({
           this.timer = setTimeout(runStep, speed);
         }
       };
+
       this.timer = setTimeout(runStep, speed);
       this.activeIndex = finalIndex;
     },
@@ -261,6 +288,7 @@ export default defineComponent({
       } else {
         meal = 'midnight';
       }
+      const oldDraw = userStore.foodDrawToday?.[meal];
 
       const itemIndex = Math.floor(Math.random() * prize.items.length);
       const selectedItem = prize.items[itemIndex] ?? null;
@@ -272,9 +300,11 @@ export default defineComponent({
 
       Dialog.create({
         title: `🍱 今日推薦：${prize.label}-${selectedItem}`,
-        message: `\n要記錄此${mealMap[meal]}嗎？`,
+        message: oldDraw
+          ? `您已記錄過 ${oldDraw}。\n是否要覆蓋為 ${fullFood}？`
+          : `要記錄此${mealMap[meal]}嗎？`,
         persistent: true,
-        ok: { label: '記錄', color: 'primary' },
+        ok: { label: oldDraw ? '覆蓋記錄' : '記錄', color: 'primary' },
         cancel: { label: '取消', color: 'grey' },
       }).onOk(() => {
         if (!userStore.token) {
@@ -287,7 +317,6 @@ export default defineComponent({
             position: 'center',
             timeout: 1500,
           });
-
           return;
         }
 
@@ -322,6 +351,7 @@ export default defineComponent({
         });
 
         const meals = res.data?.meals;
+        userStore.foodDrawToday = meals;
         if (!meals) return;
 
         const now = new Date();
