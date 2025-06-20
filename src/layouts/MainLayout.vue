@@ -44,7 +44,7 @@
           <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm" color="blue-2">
             <img :src="userStore.avatar" />
           </q-avatar>
-          <q-avatar v-else color="blue-2">
+          <q-avatar v-else color="secondary">
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
           </q-avatar>
 
@@ -209,7 +209,7 @@ watch(showLogin, (val) => {
 });
 
 function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
-  userStore.setUser({
+  void userStore.setUser({
     username: data.username,
     token: data.token,
     role: data.role,

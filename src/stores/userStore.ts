@@ -1,7 +1,7 @@
 // src/stores/userStore.ts
 import { defineStore } from 'pinia';
 import { useApi } from 'src/composables/axios';
-import { Notify } from 'quasar';
+import { Notify, Dialog } from 'quasar';
 
 // 這是建立一個名為 'user' 的 Pinia store，用來管理使用者登入狀態與基本資料。
 export const useUserStore = defineStore('user', {
@@ -61,6 +61,15 @@ export const useUserStore = defineStore('user', {
       this.token = '';
       this.role = null;
       this.avatar = '';
+      this.pendingDraw = null;
+      this.foodDrawToday = {
+        breakfast: undefined,
+        lunch: undefined,
+        dinner: undefined,
+        midnight: undefined,
+      };
+
+      localStorage.removeItem('guestPrizes');
       localStorage.removeItem('user');
 
       // 登出提醒
@@ -94,7 +103,7 @@ export const useUserStore = defineStore('user', {
     },
 
     // 驗證成功後（例如透過 /user/getCurrentUser 拿回資料）更新使用者資訊
-    setUser(user: { username: string; role: number; token?: string; avatar: string }) {
+    async setUser(user: { username: string; role: number; token?: string; avatar: string }) {
       this.username = user.username;
       this.role = user.role;
       this.avatar = user.avatar;
@@ -119,32 +128,80 @@ export const useUserStore = defineStore('user', {
       // ✅ 補送抽獎紀錄（如果有）
       if (this.pendingDraw) {
         const { api } = useApi();
-        api
-          .post('/record/food-draw', {
-            meal: this.pendingDraw.meal,
-            food: this.pendingDraw.food,
-          })
-          .then(() => {
-            console.log('✅ 自動補送抽獎成功');
+        const { meal, food } = this.pendingDraw;
+
+        try {
+          const { data } = await api.get('/record/food-draw/today', {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
+          });
+
+          const existing = data?.meals?.[meal];
+
+          if (existing) {
+            Dialog.create({
+              title: '已有推薦紀錄',
+              message: `您今天的 ${meal} 已推薦為「${existing}」，是否要覆蓋為「${food}」？`,
+              cancel: {
+                label: '保留原本',
+                color: 'grey-8',
+                flat: true,
+              },
+              ok: {
+                label: '覆蓋',
+                color: 'primary',
+              },
+              persistent: true,
+            })
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
+              .onOk(async () => {
+                try {
+                  await api.post('/record/food-draw', { meal, food });
+
+                  Notify.create({
+                    type: 'positive',
+                    message: `🎉 已覆蓋推薦為：${food}`,
+                    position: 'center',
+                    timeout: 2000,
+                  });
+                } catch (err) {
+                  console.error('❌ 覆蓋推薦失敗', err);
+                  Notify.create({
+                    type: 'negative',
+                    message: '⚠️ 覆蓋失敗，請稍後再試',
+                    position: 'center',
+                    timeout: 2000,
+                  });
+                } finally {
+                  this.clearPendingDraw();
+                }
+              })
+              .onCancel(() => {
+                this.clearPendingDraw();
+              });
+          } else {
+            await api.post('/record/food-draw', { meal, food });
+
             Notify.create({
               type: 'positive',
-              message: `🎉 已為你記錄推薦餐點：${this.pendingDraw!.food}`,
+              message: `🎉 已為你記錄推薦餐點：${food}`,
               position: 'center',
               timeout: 2000,
             });
-          })
-          .catch((err) => {
-            console.error('❌ 自動補送抽獎失敗', err);
-            Notify.create({
-              type: 'negative',
-              message: '⚠️ 自動記錄失敗，請稍後再試',
-              position: 'center',
-              timeout: 2000,
-            });
-          })
-          .finally(() => {
+
             this.clearPendingDraw();
+          }
+        } catch (err) {
+          console.error('❌ 自動補送抽獎失敗', err);
+          Notify.create({
+            type: 'negative',
+            message: '⚠️ 自動記錄失敗，請稍後再試',
+            position: 'center',
+            timeout: 2000,
           });
+          this.clearPendingDraw();
+        }
       }
     },
 
