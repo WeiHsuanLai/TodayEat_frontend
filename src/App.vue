@@ -33,7 +33,7 @@ onMounted(async () => {
       const user = res.data.user;
 
       // 如果 user.avatar 存在才用，否則維持原 avatar，不覆寫
-      userStore.setUser({
+      void userStore.setUser({
         username: user.username,
         role: user.role,
         avatar: user.avatar?.trim() || userStore.avatar,
