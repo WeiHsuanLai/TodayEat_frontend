@@ -34,14 +34,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const status = error?.response?.status;
-    const config = error.config;
-    const extendedConfig = config;
+    const config = error?.config ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const extendedConfig = config as Record<string, any>;
     if (
       status === 401 &&
       getUserStore &&
       getRouter &&
       !isHandling401 &&
-      !(extendedConfig && extendedConfig._skip401Handler === true)
+      extendedConfig._skip401Handler !== true
     ) {
       isHandling401 = true;
 
