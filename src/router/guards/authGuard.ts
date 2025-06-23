@@ -42,7 +42,7 @@ export async function authGuard(
         },
       });
       console.log('登入回傳資料:', res.data);
-      userStore.setUser({
+      void userStore.setUser({
         username: res.data.user.username,
         role: res.data.user.role,
         avatar: res.data.user.avatar?.trim() || userStore.avatar,
