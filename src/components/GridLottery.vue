@@ -116,7 +116,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, nextTick } from 'vue';
 import { api } from '../composables/axios';
 import { Notify, Dialog } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
@@ -270,6 +270,12 @@ export default defineComponent({
       if (this.isRunning) return;
 
       const validPrizes = this.prizes.filter((p) => p.items.length > 0);
+
+      console.log(
+        '[可抽項目]',
+        validPrizes.map((p) => `${p.label}: ${p.items.join(', ')}`),
+      );
+
       if (validPrizes.length === 0) {
         Notify.create({
           type: 'warning',
@@ -280,8 +286,9 @@ export default defineComponent({
       }
 
       this.isRunning = true;
+      const finalPrize = validPrizes[Math.floor(Math.random() * validPrizes.length)]!;
+      const finalIndex = this.prizes.findIndex((p) => p.label === finalPrize.label);
       const totalItems = this.prizes.length;
-      const finalIndex = Math.floor(Math.random() * validPrizes.length);
       const cycles = 3;
       const totalSteps = cycles * totalItems + finalIndex;
       let steps = 0;
@@ -453,6 +460,15 @@ export default defineComponent({
       this.dialog.items.push(name);
       this.dialog.newItem = '';
 
+      const prize = this.prizes.find((p) => p.label === this.dialog.label);
+      if (prize) {
+        prize.items = [...this.dialog.items];
+      }
+
+      if (this.dialog.targetPrize) {
+        this.dialog.targetPrize.items = [...this.dialog.items];
+      }
+
       // ✅ 若已登入，將新增項目同步寫入後端
       if (this.isLoggedIn) {
         try {
@@ -477,15 +493,13 @@ export default defineComponent({
           console.warn('🔧 新增料理儲存失敗：', err);
         }
       }
-      console.log('[addDish] isLoggedIn:', this.isLoggedIn);
-
-      console.log('[addDish] label:', this.dialog.label, 'name:', name);
     },
+
     removeDish(index: number) {
       this.dialog.items.splice(index, 1);
     },
 
-    saveDishEdit() {
+    async saveDishEdit() {
       void this.addDish();
       const label = this.dialog.label.trim();
 
@@ -512,10 +526,11 @@ export default defineComponent({
 
       if (!this.isLoggedIn) {
         try {
+          await nextTick();
           localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-          console.log('🔄 寫入 localStorage 成功:', JSON.stringify(this.prizes));
+          console.log('[未登入] ✅ 寫入 localStorage 完成:', this.prizes);
         } catch (err) {
-          console.error('❌ 寫入 localStorage 失敗', err);
+          console.error('❌ localStorage 寫入失敗', err);
         }
       }
 
@@ -656,7 +671,19 @@ export default defineComponent({
       const label = this.newCategoryLabel.trim();
       if (!label) return;
 
+      if (this.newCategoryNewItem.trim()) {
+        this.newCategoryItems.push(this.newCategoryNewItem.trim());
+      }
+
       const items = [...this.newCategoryItems];
+      if (items.length === 0) {
+        Notify.create({
+          type: 'warning',
+          message: '請至少新增一筆料理項目再建立分類',
+        });
+        return;
+      }
+      console.log('[新增分類內容]', { label, items });
 
       const newPrize = {
         label,
@@ -665,6 +692,7 @@ export default defineComponent({
       };
 
       this.prizes.push(newPrize);
+
       this.newCategoryDialog = false;
       this.newCategoryItems = [];
       this.newCategoryLabel = '';
@@ -683,8 +711,12 @@ export default defineComponent({
           console.error('新增分類錯誤：', err);
         }
       } else {
-        localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-        Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
+        try {
+          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+          console.log('[未登入] ✅ 寫入 localStorage 完成:', this.prizes);
+        } catch (err) {
+          console.error('[未登入] ❌ 寫入 localStorage 失敗:', err);
+        }
       }
     },
 
@@ -694,6 +726,7 @@ export default defineComponent({
 
       this.newCategoryItems.push(name);
       this.newCategoryNewItem = '';
+      console.log('[新增料理項目]', this.newCategoryItems);
     },
   },
   beforeUnmount() {
