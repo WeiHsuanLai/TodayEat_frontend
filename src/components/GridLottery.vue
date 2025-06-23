@@ -497,8 +497,52 @@ export default defineComponent({
 
     removeDish(index: number) {
       this.dialog.items.splice(index, 1);
-    },
 
+      const label = this.dialog.label;
+      const prize = this.prizes.find((p) => p.label === label);
+      if (prize) {
+        prize.items = [...this.dialog.items];
+      }
+
+      if (this.dialog.targetPrize) {
+        this.dialog.targetPrize.items = [...this.dialog.items];
+      }
+
+      if (this.isLoggedIn) {
+        // 登入狀態，呼叫 API 同步刪除
+        const removedItem = this.dialog.items[index];
+        api
+          .delete('/user/custom-items', {
+            data: {
+              label,
+              item: removedItem,
+            },
+            headers: {
+              Authorization: `Bearer ${useUserStore().token}`,
+            },
+          })
+          .then(() => {
+            Notify.create({
+              type: 'positive',
+              message: `✅ 已刪除 ${removedItem}`,
+            });
+          })
+          .catch((err) => {
+            Notify.create({
+              type: 'warning',
+              message: `⚠️ 無法同步刪除 ${removedItem}，已從前端移除`,
+            });
+            console.warn('後端刪除失敗', err);
+          });
+      } else {
+        // guest 模式下更新 localStorage
+        try {
+          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+        } catch (err) {
+          console.error('❌ 無法寫入 localStorage：', err);
+        }
+      }
+    },
     async saveDishEdit() {
       void this.addDish();
       const label = this.dialog.label.trim();
