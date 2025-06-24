@@ -497,64 +497,23 @@ export default defineComponent({
 
     removeDish(index: number) {
       this.dialog.items.splice(index, 1);
-
-      const label = this.dialog.label;
-      const prize = this.prizes.find((p) => p.label === label);
-      if (prize) {
-        prize.items = [...this.dialog.items];
-      }
-
-      if (this.dialog.targetPrize) {
-        this.dialog.targetPrize.items = [...this.dialog.items];
-      }
-
-      if (this.isLoggedIn) {
-        // 登入狀態，呼叫 API 同步刪除
-        const removedItem = this.dialog.items[index];
-        api
-          .delete('/user/custom-items', {
-            data: {
-              label,
-              item: removedItem,
-            },
-            headers: {
-              Authorization: `Bearer ${useUserStore().token}`,
-            },
-          })
-          .then(() => {
-            Notify.create({
-              type: 'positive',
-              message: `✅ 已刪除 ${removedItem}`,
-            });
-          })
-          .catch((err) => {
-            Notify.create({
-              type: 'warning',
-              message: `⚠️ 無法同步刪除 ${removedItem}，已從前端移除`,
-            });
-            console.warn('後端刪除失敗', err);
-          });
-      } else {
-        // guest 模式下更新 localStorage
-        try {
-          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-        } catch (err) {
-          console.error('❌ 無法寫入 localStorage：', err);
-        }
-      }
     },
     async saveDishEdit() {
-      void this.addDish();
       const label = this.dialog.label.trim();
 
-      // ⬇️ 如果輸入框還有新內容，先補進 dialog.items
+      // ⬇️ 若輸入框還有新料理名稱也先加入
       const newDish = this.dialog.newItem.trim();
       if (newDish && !this.dialog.items.includes(newDish)) {
         this.dialog.items.push(newDish);
         this.dialog.newItem = '';
       }
 
-      const newItems = [...this.dialog.items];
+      const finalItems = [...this.dialog.items]; // 最新的項目清單
+      const originalItems = this.dialog.targetPrize?.items ?? []; // 原本的項目清單
+
+      // 差集比較
+      const deletedItems = originalItems.filter((item) => !finalItems.includes(item));
+      const addedItems = finalItems.filter((item) => !originalItems.includes(item));
 
       const prize = this.prizes.find((p) => p.label.trim() === label);
       if (!prize) {
@@ -562,23 +521,47 @@ export default defineComponent({
         return;
       }
 
-      prize.items = newItems;
-
+      prize.items = finalItems;
       if (this.dialog.targetPrize) {
-        this.dialog.targetPrize.items = newItems;
+        this.dialog.targetPrize.items = finalItems;
       }
 
-      if (!this.isLoggedIn) {
+      if (this.isLoggedIn) {
+        const headers = {
+          Authorization: `Bearer ${useUserStore().token}`,
+        };
+
+        // 先處理刪除
+        for (const item of deletedItems) {
+          try {
+            await api.delete('/user/custom-items', {
+              data: { label, item },
+              headers,
+            });
+            console.log(`✅ 已刪除 ${item}`);
+          } catch (err) {
+            console.warn(`❌ 刪除 ${item} 失敗`, err);
+          }
+        }
+
+        // 再處理新增
+        for (const item of addedItems) {
+          try {
+            await api.post('/user/custom-items', { label, item }, { headers });
+            console.log(`✅ 已新增 ${item}`);
+          } catch (err) {
+            console.warn(`❌ 新增 ${item} 失敗`, err);
+          }
+        }
+      } else {
         try {
           await nextTick();
           localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-          console.log('[未登入] ✅ 寫入 localStorage 完成:', this.prizes);
+          console.log('[未登入] ✅ localStorage 更新完成');
         } catch (err) {
-          console.error('❌ localStorage 寫入失敗', err);
+          console.error('[未登入] ❌ localStorage 寫入失敗', err);
         }
       }
-
-      console.log('🧾 localStorage 目前內容：', localStorage.getItem('guestPrizes'));
 
       Notify.create({
         type: 'positive',
@@ -587,7 +570,6 @@ export default defineComponent({
 
       this.dialog.model = false;
     },
-
     resetToDefault() {
       Dialog.create({
         title: '重置確認',
