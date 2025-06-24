@@ -185,9 +185,9 @@ export const useUserStore = defineStore('user', {
 
             Notify.create({
               type: 'positive',
-              message: `🎉 已為你記錄推薦餐點：${food}`,
+              message: `🎉 已為您記錄推薦餐點：${food}，可到會員選單的抽取歷史查詢`,
               position: 'center',
-              timeout: 2000,
+              timeout: 4000,
             });
 
             this.clearPendingDraw();
