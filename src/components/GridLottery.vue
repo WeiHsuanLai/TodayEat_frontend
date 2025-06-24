@@ -535,10 +535,9 @@ export default defineComponent({
         for (const item of deletedItems) {
           try {
             await api.delete('/user/custom-items', {
-              data: { label, item },
+              data: { label, items: deletedItems },
               headers,
             });
-            console.log(`✅ 已刪除 ${item}`);
           } catch (err) {
             console.warn(`❌ 刪除 ${item} 失敗`, err);
           }
@@ -658,7 +657,7 @@ export default defineComponent({
         if (this.isLoggedIn) {
           try {
             await api.delete('/user/custom-item/label', {
-              data: { label }, // DELETE 方法的 payload 需放 data 屬性
+              data: { labels: [label] },
               headers: {
                 Authorization: `Bearer ${useUserStore().token}`,
               },
@@ -687,7 +686,6 @@ export default defineComponent({
         }
       });
     },
-
     openNewCategoryDialog() {
       this.newCategoryLabel = '';
       this.newCategoryDialog = true;
