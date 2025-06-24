@@ -1,6 +1,15 @@
 <template>
   <div>
-    <div class="text-h4 text-center q-ma-sm">目前時段:{{ currentMeal }}</div>
+    <div class="header-row">
+      <div class="time-label">目前時段:{{ currentMeal }}</div>
+      <q-select
+        v-model="model"
+        :options="options"
+        label="目前抽取類別"
+        dense
+        style="min-width: 120px"
+      />
+    </div>
     <div class="lottery-container">
       <div class="grid" :style="gridStyle">
         <div
@@ -148,6 +157,8 @@ export default defineComponent({
       newCategoryLabel: '',
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
+      model: '全部隨機',
+      options: ['全部隨機', '早餐', '午餐', '晚餐', '消夜'],
     };
   },
 
@@ -195,6 +206,8 @@ export default defineComponent({
   methods: {
     async loadPrizes() {
       try {
+        const isAll = this.model === '全部隨機';
+
         const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
         const config = this.isLoggedIn
           ? { headers: { Authorization: `Bearer ${useUserStore().token}` } }
@@ -202,31 +215,23 @@ export default defineComponent({
 
         const res = await api.get(endpoint, config);
 
-        if (this.isLoggedIn) {
-          console.log('登入後回傳資料:', res.data);
-          const customItems = res.data?.customItems ?? {};
-          this.prizes = Object.entries(customItems).map(([label, items]) => ({
-            label,
-            items: items as string[],
-            selectedItem: null,
-          }));
-        } else {
-          console.log('登入前回傳資料:', res.data);
-          // ⚠️ 這裡是未登入時的格式：直接是一個陣列
-          const stored = localStorage.getItem('guestPrizes');
-          if (stored) {
-            this.prizes = JSON.parse(stored);
-            console.log('載入 localStorage 中的未登入料理列表');
-            return;
-          }
+        const rawData = this.isLoggedIn
+          ? (res.data?.customItems ?? {})
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Object.fromEntries((res.data ?? []).map((item: any) => [item.label, item.items]));
 
-          const prizeArray = res.data ?? [];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.prizes = prizeArray.map((item: any) => ({
-            label: item.label,
-            items: item.items,
-            selectedItem: null,
-          }));
+        const filteredEntries = isAll
+          ? Object.entries(rawData)
+          : Object.entries(rawData).filter(([label]) => label === this.model);
+
+        this.prizes = filteredEntries.map(([label, items]) => ({
+          label,
+          items: items as string[],
+          selectedItem: null,
+        }));
+
+        if (!this.isLoggedIn && isAll) {
+          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
         }
       } catch (err) {
         Notify.create({
@@ -839,5 +844,19 @@ export default defineComponent({
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.header-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.time-label {
+  font-size: 1.25rem;
+  font-weight: bold;
 }
 </style>
