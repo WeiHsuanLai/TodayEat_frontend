@@ -5,7 +5,7 @@
       <q-select
         v-model="model"
         :options="options"
-        label="目前抽取類別"
+        label="抽取類別"
         dense
         style="min-width: 120px"
       />
@@ -125,7 +125,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, nextTick } from 'vue';
+import { defineComponent, nextTick, ref } from 'vue';
 import { api } from '../composables/axios';
 import { Notify, Dialog } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
@@ -157,7 +157,7 @@ export default defineComponent({
       newCategoryLabel: '',
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
-      model: '全部隨機',
+      model: ref('全部隨機'),
       options: ['全部隨機', '早餐', '午餐', '晚餐', '消夜'],
     };
   },
@@ -529,6 +529,12 @@ export default defineComponent({
       prize.items = finalItems;
       if (this.dialog.targetPrize) {
         this.dialog.targetPrize.items = finalItems;
+      }
+
+      if (Array.isArray(this.prizes)) {
+        const prize = this.prizes.find((p) => p.label === label);
+        if (!prize) return;
+        prize.items = finalItems;
       }
 
       if (this.isLoggedIn) {
