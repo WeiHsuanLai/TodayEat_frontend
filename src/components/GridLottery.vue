@@ -208,6 +208,20 @@ export default defineComponent({
       try {
         const isAll = this.model === '全部隨機';
 
+        // ✅ 未登入狀態下，優先從 localStorage 載入 guestPrizes
+        if (!this.isLoggedIn) {
+          const saved = localStorage.getItem('guestPrizes');
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              this.prizes = parsed;
+              return;
+            } catch (e) {
+              console.warn('❌ 讀取 guestPrizes 時 JSON 解析錯誤', e);
+            }
+          }
+        }
+
         const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
         const config = this.isLoggedIn
           ? { headers: { Authorization: `Bearer ${useUserStore().token}` } }
@@ -230,6 +244,7 @@ export default defineComponent({
           selectedItem: null,
         }));
 
+        //如果未登入且選項是全部隨機，則會儲存訪客資料
         if (!this.isLoggedIn && isAll) {
           localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
         }
@@ -567,7 +582,10 @@ export default defineComponent({
         try {
           await nextTick();
           localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-          console.log('[未登入] ✅ localStorage 更新完成');
+          console.log(
+            '[未登入] ✅ localStorage 更新完成',
+            JSON.parse(localStorage.getItem('guestPrizes') || '[]'),
+          );
         } catch (err) {
           console.error('[未登入] ❌ localStorage 寫入失敗', err);
         }
