@@ -222,7 +222,7 @@ export default defineComponent({
           }
         }
 
-        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
+        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/cuisineTypes';
         const config = this.isLoggedIn
           ? { headers: { Authorization: `Bearer ${useUserStore().token}` } }
           : {};
@@ -641,7 +641,7 @@ export default defineComponent({
         } else {
           // 未登入（guest 模式）
           try {
-            const res = await api.get('/prizes');
+            const res = await api.get('/cuisineTypes');
             const prizeArray = res.data ?? [];
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
