@@ -44,6 +44,7 @@
 
           <!-- 新增項目或刪除彈窗按鈕 -->
           <q-btn
+            v-if="model === '全部隨機'"
             icon="add"
             color="primary"
             class="q-my-xs"
@@ -54,7 +55,7 @@
         </div>
 
         <!-- 新增分類按鈕 -->
-        <div class="grid-item add-new" @click="openNewCategoryDialog">
+        <div v-if="model === '全部隨機'" class="grid-item add-new" @click="openNewCategoryDialog">
           <q-icon name="add" size="md" color="primary" />
           <div class="label-text">新增分類</div>
         </div>
@@ -179,7 +180,8 @@ export default defineComponent({
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
       model: ref('全部隨機'),
-      options: ['全部隨機', '早餐', '午餐', '晚餐', '消夜'],
+      options: ['全部隨機', '早餐類', '午餐類', '晚餐類', '宵夜類'],
+      mealLabels: [] as string[], //取得料理項目
     };
   },
 
@@ -203,6 +205,7 @@ export default defineComponent({
 
   mounted() {
     void this.loadPrizes().then(() => {
+      void this.loadPrizes(); //取得料理項目
       void this.loadTodayDraw(); // 等載入完料理後再載入已抽紀錄
     });
   },
@@ -225,6 +228,21 @@ export default defineComponent({
     },
   },
   methods: {
+    // 取得料理項目
+    async loadMealLabels() {
+      try {
+        const res = await api.get('/mealPresets');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const labels = res.data?.map((p: any) => p.label) ?? [];
+        this.mealLabels = labels;
+        // 更新 options，保留「全部隨機」在最前面
+        this.options = ['全部隨機', ...labels];
+        console.log('🍱 mealLabels:', this.mealLabels);
+      } catch (err) {
+        console.error('[loadMealLabels] 無法載入餐別標籤', err);
+      }
+    },
+
     // 載入料理格子
     async loadPrizes() {
       try {
@@ -232,35 +250,57 @@ export default defineComponent({
 
         const isRandomAll = label === '全部隨機';
         // 根據選擇決定查詢類型（type)
-        // 若是全部隨機，就不指定 type 與 label
-        const type = isRandomAll
-          ? undefined
-          : ['早餐', '午餐', '晚餐', '消夜'].includes(label)
-            ? 'meal'
-            : 'cuisine';
+        if (this.mealLabels.length === 0) {
+          await this.loadMealLabels();
+        }
+        const type = isRandomAll ? undefined : this.mealLabels.includes(label) ? 'meal' : 'cuisine';
 
         // ✅ 未登入 → 從 localStorage guestPrizes 篩出指定分類
         if (!this.isLoggedIn) {
+          // 🔍 優先從 localStorage 讀取未登入者的暫存資料
           const saved = localStorage.getItem('guestPrizes');
           if (saved) {
             try {
               const parsed = JSON.parse(saved); // parsed: Prize[]
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const found = parsed.find((p: any) => p.label === label);
-              this.prizes = found ? [found] : [];
+              if (this.model === '全部隨機') {
+                this.prizes = parsed;
+              } else {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const found = parsed.find((p: any) => p.label === label);
+                this.prizes = found ? [found] : [];
+              }
               return;
             } catch (e) {
               console.warn('❌ 讀取 guestPrizes 時 JSON 解析錯誤', e);
             }
           }
 
-          // 若 localStorage 沒有，從預設 API 抓（舊格式）
-          const fallbackEndpoint = type === 'meal' ? '/meal-period-presets' : '/cuisineTypes';
-          const res = await api.get(fallbackEndpoint);
-          const prizeList = res.data ?? [];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const found = prizeList.find((p: any) => p.label === label);
-          this.prizes = found ? [{ ...found, selectedItem: null }] : [];
+          // 🧾 localStorage 沒有，從後端 API 取得預設料理（僅限 cuisine 類型）
+          try {
+            const res = await api.get('/cuisineTypes');
+            const prizeList = res.data ?? [];
+
+            if (this.model === '全部隨機') {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              this.prizes = prizeList.map((p: any) => ({
+                label: p.label,
+                items: p.items,
+                selectedItem: null,
+              }));
+            } else {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const found = prizeList.find((p: any) => p.label === label);
+              this.prizes = found ? [{ ...found, selectedItem: null }] : [];
+            }
+          } catch (err) {
+            Notify.create({
+              type: 'negative',
+              message: '❌ 載入預設料理失敗',
+              position: 'center',
+            });
+            console.error('[未登入] 無法從 API 載入 cuisineTypes', err);
+          }
+
           return;
         }
 
@@ -603,6 +643,9 @@ export default defineComponent({
       }
 
       const finalItems = [...this.dialog.items]; // 最新的項目清單
+      if (finalItems.length === 0) {
+        this.prizes = this.prizes.filter((p) => p.label !== label);
+      }
       const originalItems = this.dialog.targetPrize?.items ?? []; // 原本的項目清單
 
       // 差集比較
@@ -753,6 +796,9 @@ export default defineComponent({
 
       const label = prize.label;
 
+      // 若不是全部隨機（例如早餐類），則應該每個 label 是「一個料理」
+      const isMealType = this.model !== '全部隨機';
+
       Dialog.create({
         title: '刪除確認',
         message: `是否刪除「${label}」這個料理類別？`,
@@ -764,12 +810,27 @@ export default defineComponent({
 
         if (this.isLoggedIn) {
           try {
-            await api.delete('/user/custom-item/label', {
-              data: { labels: [label] },
+            const type = isMealType ? 'meal' : 'cuisine';
+
+            const payload = isMealType
+              ? {
+                  type,
+                  label: this.model,
+                  items: [label], // ❗此時 label 是 item 名
+                }
+              : {
+                  type,
+                  label,
+                  items: prize.items,
+                };
+
+            await api.delete('/user/custom-items', {
+              data: payload,
               headers: {
                 Authorization: `Bearer ${useUserStore().token}`,
               },
             });
+
             Notify.create({
               type: 'positive',
               message: `✅ 已刪除 ${label}`,
@@ -777,9 +838,9 @@ export default defineComponent({
           } catch (err) {
             Notify.create({
               type: 'warning',
-              message: `⚠️ 後端刪除 ${label} 失敗（已從前端移除）`,
+              message: `⚠️ 刪除失敗，請稍後再試`,
             });
-            console.warn(`[刪除失敗] label=${label}`, err);
+            console.warn(`[刪除失敗]`, err);
           }
         } else {
           try {
