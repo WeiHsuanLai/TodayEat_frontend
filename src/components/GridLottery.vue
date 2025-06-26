@@ -1,7 +1,11 @@
+<!-- src/components/GridLottery.vue -->
 <template>
   <div>
     <div class="header-row">
+      <!-- 顯示目前時段（早餐／午餐／晚餐／消夜） -->
       <div class="time-label">目前時段:{{ currentMeal }}</div>
+
+      <!-- 類別選擇器（全部隨機／四個時段） -->
       <q-select
         v-model="model"
         :options="options"
@@ -10,7 +14,9 @@
         style="min-width: 120px"
       />
     </div>
+
     <div class="lottery-container">
+      <!-- 料理格子 -->
       <div class="grid" :style="gridStyle">
         <div
           v-for="(item, index) in prizes"
@@ -19,6 +25,7 @@
           size="sm"
           :title="item.items.join(', ')"
         >
+          <!-- 刪除按鈕 -->
           <q-btn
             size="xs"
             icon="close"
@@ -29,8 +36,12 @@
             color="red"
             @click.stop="deletePrize(index)"
           />
+
+          <!-- 分類名稱與抽中料理 -->
           <div class="label-text">{{ item.label }}</div>
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
+
+          <!-- 新增項目或刪除彈窗按鈕 -->
           <q-btn
             icon="add"
             color="primary"
@@ -40,6 +51,8 @@
             @click="showItemDetail(item)"
           />
         </div>
+
+        <!-- 新增分類按鈕 -->
         <div class="grid-item add-new" @click="openNewCategoryDialog">
           <q-icon name="add" size="md" color="primary" />
           <div class="label-text">新增分類</div>
@@ -54,6 +67,8 @@
         </button>
       </div>
     </div>
+
+    <!-- 在原有項目(X式料理)新增或刪除彈窗 -->
     <q-dialog v-model="dialog.model">
       <q-card style="min-width: 300px; max-width: 90vw">
         <q-card-section>
@@ -63,13 +78,16 @@
         <q-separator />
 
         <q-card-section class="q-gutter-y-sm">
+          <!-- 迴圈取得每個料理 -->
           <q-item v-for="(dish, i) in dialog.items" :key="i" dense>
             <q-item-section>{{ dish }}</q-item-section>
+            <!-- 刪除料理項目上的 X -->
             <q-item-section side>
               <q-btn dense flat icon="delete" color="red" @click="removeDish(i)" />
             </q-item-section>
           </q-item>
 
+          <!-- 新增料理 -->
           <q-input
             v-model="dialog.newItem"
             dense
@@ -79,6 +97,7 @@
           />
         </q-card-section>
 
+        <!-- 取消和儲存按鈕 -->
         <q-card-actions align="right">
           <q-btn flat label="取消" color="grey" @click="dialog.model = false" />
           <q-btn flat label="儲存" color="primary" @click="saveDishEdit" />
@@ -86,6 +105,7 @@
       </q-card>
     </q-dialog>
 
+    <!-- 新增料理項目彈窗 -->
     <q-dialog v-model="newCategoryDialog">
       <q-card style="min-width: 300px; max-width: 90vw">
         <q-card-section>
@@ -110,7 +130,7 @@
             v-model="newCategoryNewItem"
             dense
             outlined
-            placeholder="輸入新料理（按 Enter 加入）"
+            placeholder="Enter可輸入新料理"
             @keyup.enter="addNewCategoryDish"
           />
         </q-card-section>
@@ -138,7 +158,7 @@ export default defineComponent({
         label: string;
         items: string[];
         selectedItem: string | null;
-      }[],
+      }[], // 抽獎格子陣列，每個格子含 label, items, selectedItem。
       activeIndex: -1,
       isRunning: false,
       timer: null as ReturnType<typeof setTimeout> | null,
@@ -152,7 +172,7 @@ export default defineComponent({
           items: string[];
           selectedItem: string | null;
         },
-      },
+      }, // 制項目編輯與新增分類的 UI 狀態
       newCategoryDialog: false,
       newCategoryLabel: '',
       newCategoryItems: [] as string[],
@@ -257,6 +277,8 @@ export default defineComponent({
         console.error('loadPrizes failed:', err);
       }
     },
+
+    // 開始抽取
     startLottery() {
       const userStore = useUserStore();
       const now = new Date();
@@ -271,6 +293,7 @@ export default defineComponent({
       const oldDraw = userStore.foodDrawToday?.[mealKey]; // ⬅ 確保 mealKey 先定義好再取值
 
       if (oldDraw) {
+        // 如果有抽取過，跳出提示
         Dialog.create({
           title: '已有推薦紀錄',
           message: `目前時段您已抽過餐點：${oldDraw}\n是否要重新抽取？`,
@@ -285,6 +308,7 @@ export default defineComponent({
       this.runLottery();
     },
 
+    // 抽取 function
     runLottery() {
       this.prizes.forEach((p) => (p.selectedItem = null));
       if (this.isRunning) return;
@@ -343,6 +367,7 @@ export default defineComponent({
       this.activeIndex = finalIndex;
     },
 
+    // 儲存抽取結果與分配時段
     handleFinish(prize: { selectedItem: string | null; label: string; items: string[] }) {
       const userStore = useUserStore();
       const now = new Date();
@@ -384,41 +409,49 @@ export default defineComponent({
         persistent: true,
         ok: { label: oldDraw ? '覆蓋記錄' : '記錄', color: 'primary' },
         cancel: { label: '取消', color: 'grey' },
-      }).onOk(() => {
-        if (!userStore.token) {
-          userStore.setPendingDraw(meal, fullFood);
-          userStore.showLoginModal = true;
+      })
+        .onOk(() => {
+          if (!userStore.token) {
+            userStore.setPendingDraw(meal, fullFood);
+            userStore.showLoginModal = true;
 
-          Notify.create({
-            type: 'info',
-            message: '請先登入以記錄推薦',
-            position: 'center',
-            timeout: 1500,
-          });
-          return;
-        }
-
-        api
-          .post('/record/food-draw', { meal, food: fullFood })
-          .then(() => {
             Notify.create({
-              type: 'positive',
-              message: `🍽️ 已記錄${selectedItem}`,
+              type: 'info',
+              message: '請先登入以記錄推薦',
               position: 'center',
               timeout: 1500,
             });
-          })
-          .catch(() => {
-            Notify.create({
-              type: 'negative',
-              message: '儲存失敗，請稍後再試',
-              position: 'center',
-              timeout: 1500,
+            return;
+          }
+
+          // 呼叫 api /record/food-draw 將結果存至後端
+          api
+            .post('/record/food-draw', { meal, food: fullFood })
+            .then(() => {
+              Notify.create({
+                type: 'positive',
+                message: `🍽️ 已記錄${selectedItem}`,
+                position: 'center',
+                timeout: 1500,
+              });
+            })
+            .catch(() => {
+              Notify.create({
+                type: 'negative',
+                message: '儲存失敗，請稍後再試',
+                position: 'center',
+                timeout: 1500,
+              });
             });
-          });
-      });
+        })
+        .onCancel(() => {
+          console.log('🔴 使用者不記錄餐點');
+          prize.selectedItem = null;
+          this.activeIndex = -1;
+        });
     },
 
+    // 登入後會載入抽取紀錄
     async loadTodayDraw() {
       const userStore = useUserStore();
       if (!userStore.token) return;
@@ -462,6 +495,7 @@ export default defineComponent({
       }
     },
 
+    // 顯示料理彈窗，可新增／刪除料理
     showItemDetail(item: (typeof this.prizes)[number]) {
       const latest = this.prizes.find((p) => p.label === item.label);
       console.log('🧐 開啟 Dialog，當前料理為：', latest);
@@ -515,9 +549,12 @@ export default defineComponent({
       }
     },
 
+    // 刪除料理 (垃圾桶圖示)
     removeDish(index: number) {
       this.dialog.items.splice(index, 1);
     },
+
+    // 儲存刪除或新增料理
     async saveDishEdit() {
       const label = this.dialog.label.trim();
 
@@ -579,6 +616,7 @@ export default defineComponent({
           }
         }
       } else {
+        // 如果未登入則存在本地
         try {
           await nextTick();
           localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
@@ -598,6 +636,8 @@ export default defineComponent({
 
       this.dialog.model = false;
     },
+
+    // 還原料理項目為預設
     resetToDefault() {
       Dialog.create({
         title: '重置確認',
@@ -668,6 +708,8 @@ export default defineComponent({
         }
       });
     },
+
+    // 刪除料理類別 (XX料理右上角的 X)
     deletePrize(index: number) {
       const prize = this.prizes[index];
       if (!prize) return;
@@ -715,11 +757,14 @@ export default defineComponent({
         }
       });
     },
+
+    // 開啟新增分類彈窗
     openNewCategoryDialog() {
       this.newCategoryLabel = '';
       this.newCategoryDialog = true;
     },
 
+    // 新增料理項目
     async createNewCategory() {
       const label = this.newCategoryLabel.trim();
       if (!label) return;
@@ -773,6 +818,7 @@ export default defineComponent({
       }
     },
 
+    // 在新增分類中新增料理
     addNewCategoryDish() {
       const name = this.newCategoryNewItem.trim();
       if (!name || this.newCategoryItems.includes(name)) return;
@@ -782,6 +828,8 @@ export default defineComponent({
       console.log('[新增料理項目]', this.newCategoryItems);
     },
   },
+
+  // 清除計時器 this.timer
   beforeUnmount() {
     if (this.timer) clearTimeout(this.timer);
   },
