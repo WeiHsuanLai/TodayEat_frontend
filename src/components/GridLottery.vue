@@ -257,11 +257,11 @@ export default defineComponent({
 
         // ✅ 未登入 → 從 localStorage guestPrizes 篩出指定分類
         if (!this.isLoggedIn) {
-          // 🔍 優先從 localStorage 讀取未登入者的暫存資料
           const saved = localStorage.getItem('guestPrizes');
           if (saved) {
             try {
               const parsed = JSON.parse(saved); // parsed: Prize[]
+
               if (this.model === '全部隨機') {
                 this.prizes = parsed;
               } else {
@@ -275,19 +275,37 @@ export default defineComponent({
             }
           }
 
-          // 🧾 localStorage 沒有，從後端 API 取得預設料理（僅限 cuisine 類型）
+          // localStorage 沒有 → 根據類型呼叫正確的 API
           try {
-            const res = await api.get('/cuisineTypes');
-            const prizeList = res.data ?? [];
-
             if (this.model === '全部隨機') {
+              // 載入所有 cuisine
+              const res = await api.get('/cuisineTypes');
+              const prizeList = res.data ?? [];
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               this.prizes = prizeList.map((p: any) => ({
                 label: p.label,
                 items: p.items,
                 selectedItem: null,
               }));
+            } else if (this.mealLabels.includes(this.model)) {
+              // 是 meal 類別 → 呼叫 /mealPresets
+              const res = await api.get('/mealPresets');
+              const allMeals = res.data ?? [];
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const matched = allMeals.find((p: any) => p.label === label);
+              if (matched) {
+                this.prizes = matched.items.map((item: string) => ({
+                  label: item,
+                  items: [item],
+                  selectedItem: null,
+                }));
+              } else {
+                this.prizes = [];
+              }
             } else {
+              // 單一 cuisine 類別
+              const res = await api.get('/cuisineTypes');
+              const prizeList = res.data ?? [];
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const found = prizeList.find((p: any) => p.label === label);
               this.prizes = found ? [{ ...found, selectedItem: null }] : [];
@@ -298,7 +316,7 @@ export default defineComponent({
               message: '❌ 載入預設料理失敗',
               position: 'center',
             });
-            console.error('[未登入] 無法從 API 載入 cuisineTypes', err);
+            console.error('[未登入] 無法從 API 載入預設料理', err);
           }
 
           return;
