@@ -624,6 +624,7 @@ export default defineComponent({
           await api.post(
             '/user/custom-items',
             {
+              type: this.getItemType(),
               label: this.dialog.label,
               item: name,
             },
@@ -642,6 +643,15 @@ export default defineComponent({
           console.warn('🔧 新增料理儲存失敗：', err);
         }
       }
+    },
+
+    // 封裝 type 格式
+    getItemType() {
+      return this.model === '全部隨機'
+        ? 'cuisine'
+        : this.mealLabels.includes(this.model)
+          ? 'meal'
+          : 'cuisine';
     },
 
     // 刪除料理 (垃圾桶圖示)
@@ -696,7 +706,11 @@ export default defineComponent({
         for (const item of deletedItems) {
           try {
             await api.delete('/user/custom-items', {
-              data: { label, items: deletedItems },
+              data: {
+                type: this.getItemType(),
+                label,
+                items: deletedItems,
+              },
               headers,
             });
           } catch (err) {
@@ -707,7 +721,20 @@ export default defineComponent({
         // 再處理新增
         for (const item of addedItems) {
           try {
-            await api.post('/user/custom-items', { label, item }, { headers });
+            await api.post(
+              '/user/custom-items',
+              {
+                type: this.getItemType(),
+                label: this.dialog.label,
+                item: [item],
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${useUserStore().token}`,
+                },
+              },
+            );
+
             console.log(`✅ 已新增 ${item}`);
           } catch (err) {
             console.warn(`❌ 新增 ${item} 失敗`, err);
