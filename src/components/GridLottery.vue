@@ -9,6 +9,7 @@
       <q-select
         v-model="model"
         :options="options"
+        @update:model-value="loadPrizes"
         label="抽取類別"
         dense
         style="min-width: 120px"
@@ -224,49 +225,78 @@ export default defineComponent({
     },
   },
   methods: {
+    // 載入料理格子
     async loadPrizes() {
       try {
-        const isAll = this.model === '全部隨機';
+        const label = this.model;
 
-        // ✅ 未登入狀態下，優先從 localStorage 載入 guestPrizes
+        const isRandomAll = label === '全部隨機';
+        // 根據選擇決定查詢類型（type)
+        // 若是全部隨機，就不指定 type 與 label
+        const type = isRandomAll
+          ? undefined
+          : ['早餐', '午餐', '晚餐', '消夜'].includes(label)
+            ? 'meal'
+            : 'cuisine';
+
+        // ✅ 未登入 → 從 localStorage guestPrizes 篩出指定分類
         if (!this.isLoggedIn) {
           const saved = localStorage.getItem('guestPrizes');
           if (saved) {
             try {
-              const parsed = JSON.parse(saved);
-              this.prizes = parsed;
+              const parsed = JSON.parse(saved); // parsed: Prize[]
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const found = parsed.find((p: any) => p.label === label);
+              this.prizes = found ? [found] : [];
               return;
             } catch (e) {
               console.warn('❌ 讀取 guestPrizes 時 JSON 解析錯誤', e);
             }
           }
+
+          // 若 localStorage 沒有，從預設 API 抓（舊格式）
+          const fallbackEndpoint = type === 'meal' ? '/meal-period-presets' : '/cuisineTypes';
+          const res = await api.get(fallbackEndpoint);
+          const prizeList = res.data ?? [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const found = prizeList.find((p: any) => p.label === label);
+          this.prizes = found ? [{ ...found, selectedItem: null }] : [];
+          return;
         }
 
-        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/cuisineTypes';
-        const config = this.isLoggedIn
-          ? { headers: { Authorization: `Bearer ${useUserStore().token}` } }
-          : {};
+        // ✅ 已登入 → 使用 type + label 查詢自訂資料
+        const params: Record<string, string> = {};
+        if (!isRandomAll) {
+          params.type = type!;
+          params.label = label;
+        }
 
-        const res = await api.get(endpoint, config);
+        console.log('[loadPrizes] 傳送參數', params);
 
-        const rawData = this.isLoggedIn
-          ? (res.data?.customItems ?? {})
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            Object.fromEntries((res.data ?? []).map((item: any) => [item.label, item.items]));
+        const res = await api.get('/user/custom-items', {
+          headers: { Authorization: `Bearer ${useUserStore().token}` },
+          params,
+        });
 
-        const filteredEntries = isAll
-          ? Object.entries(rawData)
-          : Object.entries(rawData).filter(([label]) => label === this.model);
+        const filterType = res.data?.filterType;
 
-        this.prizes = filteredEntries.map(([label, items]) => ({
-          label,
-          items: items as string[],
-          selectedItem: null,
-        }));
+        if (filterType === 'meal') {
+          const label = res.data?.label ?? '未知時段';
+          const items = res.data?.items ?? [];
 
-        //如果未登入且選項是全部隨機，則會儲存訪客資料
-        if (!this.isLoggedIn && isAll) {
-          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+          this.prizes = items.map((item: string) => ({
+            label: item, // 顯示卡片時用
+            items: [item], // 保持結構一致
+            selectedItem: null,
+            fromLabel: label, // ✅ 用來記錄原始分類
+          }));
+        } else {
+          const raw = res.data?.customItems ?? {};
+          this.prizes = Object.entries(raw).map(([label, items]) => ({
+            label,
+            items: items as string[],
+            selectedItem: null,
+          }));
         }
       } catch (err) {
         Notify.create({
@@ -368,7 +398,12 @@ export default defineComponent({
     },
 
     // 儲存抽取結果與分配時段
-    handleFinish(prize: { selectedItem: string | null; label: string; items: string[] }) {
+    handleFinish(prize: {
+      selectedItem: string | null;
+      label: string;
+      items: string[];
+      fromLabel?: string;
+    }) {
       const userStore = useUserStore();
       const now = new Date();
       const hour = now.getHours();
@@ -395,14 +430,16 @@ export default defineComponent({
 
       const itemIndex = Math.floor(Math.random() * prize.items.length);
       const selectedItem = prize.items[itemIndex] ?? null;
-      const fullFood = `${prize.label} - ${selectedItem}`;
+      prize.selectedItem = selectedItem;
+      const fromLabel = prize.fromLabel ?? prize.label;
+      const fullFood = `${fromLabel} - ${selectedItem}`;
 
       // ✅ 顯示在抽中的格子上
 
       prize.selectedItem = selectedItem;
 
       Dialog.create({
-        title: `🍱 今日推薦：${prize.label}-${selectedItem}`,
+        title: `🍱 今日推薦：${fromLabel} - ${selectedItem}`,
         message: oldDraw
           ? `您已記錄過 ${oldDraw}。\n是否要覆蓋為 ${fullFood}？`
           : `要記錄此${mealMap[meal]}嗎？`,
