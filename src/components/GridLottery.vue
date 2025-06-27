@@ -153,7 +153,7 @@ import { Notify, Dialog } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
 
 export default defineComponent({
-  name: 'GridLottery',
+  // name: 'GridLottery',
   data() {
     return {
       prizes: [] as {
@@ -371,7 +371,7 @@ export default defineComponent({
     },
 
     // 建立本地資料維護
-    updateGuestPrizes() {
+    updateGuestPrizes(newItem?: string) {
       const key = `guestPrizes:${this.model}`;
       const data = this.prizes.map((p) => ({
         label: p.label,
@@ -379,6 +379,13 @@ export default defineComponent({
         selectedItem: null,
       }));
       localStorage.setItem(key, JSON.stringify(data));
+
+      const msg = newItem ? `✅ 已儲存新料理：${newItem}` : `✅ 已更新 ${this.model} 分類資料`;
+      Notify.create({
+        type: 'warning',
+        message: msg,
+        position: 'center',
+      });
       console.log(`[未登入] ✅ 更新 ${key}:`, data);
     },
 
@@ -658,6 +665,8 @@ export default defineComponent({
           });
           console.warn('🔧 新增料理儲存失敗：', err);
         }
+      } else {
+        this.updateGuestPrizes(name); // ✅ 補上這行
       }
     },
 
@@ -928,7 +937,10 @@ export default defineComponent({
         } else {
           if (!this.isLoggedIn) {
             try {
-              this.updateGuestPrizes();
+              const category = this.prizes.find((p) => p.label === label);
+              const deletedItems = category?.items.splice(index, 1) ?? [];
+              const deletedName = deletedItems[0];
+              this.updateGuestPrizes(deletedName);
               Notify.create({
                 type: 'positive',
                 message: `✅ 已刪除 ${label}`,
