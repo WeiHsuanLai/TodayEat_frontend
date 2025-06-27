@@ -94,7 +94,7 @@
             v-model="dialog.newItem"
             dense
             placeholder="Enter可輸入新料理"
-            @keyup.enter="addDish"
+            @keyup.enter="pushToTemp"
             outlined
           />
         </q-card-section>
@@ -166,6 +166,16 @@ import { defineComponent, nextTick, ref } from 'vue';
 import { api } from '../composables/axios';
 import { Notify, Dialog } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
+
+// 清除陣列前後空白
+function cleanArray(input: string[]): string[] {
+  return input.map((i) => i.trim()).filter(Boolean);
+}
+
+// 清除單筆前後空白
+function cleanString(s: string): string {
+  return s.trim();
+}
 
 export default defineComponent({
   // name: 'GridLottery',
@@ -387,7 +397,7 @@ export default defineComponent({
     },
 
     // 建立本地資料維護
-    updateGuestPrizes(newItem?: string) {
+    updateGuestPrizes() {
       const key = `guestPrizes:${this.model}`;
       const data = this.prizes.map((p) => ({
         label: p.label,
@@ -396,12 +406,12 @@ export default defineComponent({
       }));
       localStorage.setItem(key, JSON.stringify(data));
 
-      const msg = newItem ? `✅ 已儲存新料理：${newItem}` : `✅ 已更新 ${this.model} 分類資料`;
-      Notify.create({
-        type: 'warning',
-        message: msg,
-        position: 'center',
-      });
+      // const msg = newItem ? `✅ 已儲存新料理：${newItem}` : `✅ 已更新 ${this.model} 分類資料`;
+      // Notify.create({
+      //   type: 'warning',
+      //   message: msg,
+      //   position: 'center',
+      // });
       console.log(`[未登入] ✅ 更新 ${key}:`, data);
     },
 
@@ -617,7 +627,7 @@ export default defineComponent({
         if (!record || !record.includes(' - ')) return;
 
         const [label, selectedItem] = record.split(' - ');
-        const index = this.prizes.findIndex((p) => p.label.trim() === label.trim());
+        const index = this.prizes.findIndex((p) => cleanString(p.label) === cleanString(label));
 
         if (index !== -1) {
           const prize = this.prizes[index]!;
@@ -641,49 +651,13 @@ export default defineComponent({
       this.dialog.targetPrize = latest;
       this.dialog.model = true;
     },
-    async addDish() {
-      const name = this.dialog.newItem.trim();
+
+    pushToTemp() {
+      const name = cleanString(this.dialog.newItem);
       if (!name || this.dialog.items.includes(name)) return;
 
       this.dialog.items.push(name);
       this.dialog.newItem = '';
-
-      const prize = this.prizes.find((p) => p.label === this.dialog.label);
-      if (prize) {
-        prize.items = [...this.dialog.items];
-      }
-
-      if (this.dialog.targetPrize) {
-        this.dialog.targetPrize.items = [...this.dialog.items];
-      }
-
-      // ✅ 若已登入，將新增項目同步寫入後端
-      if (this.isLoggedIn) {
-        try {
-          await api.post(
-            '/user/custom-items',
-            {
-              type: this.getItemType(),
-              label: this.dialog.label,
-              item: name,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${useUserStore().token}`,
-              },
-            },
-          );
-          console.log(`✅ 已同步新增「${name}」至後端`);
-        } catch (err) {
-          Notify.create({
-            type: 'warning',
-            message: `⚠️ 無法儲存 ${name}，已暫存於前端`,
-          });
-          console.warn('🔧 新增料理儲存失敗：', err);
-        }
-      } else {
-        this.updateGuestPrizes(name); // ✅ 補上這行
-      }
     },
 
     // 封裝 type 格式
@@ -702,7 +676,7 @@ export default defineComponent({
 
     // 儲存刪除或新增料理
     async saveDishEdit() {
-      const label = this.dialog.label.trim();
+      const label = cleanString(this.dialog.label);
 
       // ⬇️ 若輸入框還有新料理名稱也先加入
       const newDish = this.dialog.newItem.trim();
@@ -711,7 +685,7 @@ export default defineComponent({
         this.dialog.newItem = '';
       }
 
-      const finalItems = [...this.dialog.items]; // 最新的項目清單
+      const finalItems = cleanArray(this.dialog.items);
       if (finalItems.length === 0) {
         this.prizes = this.prizes.filter((p) => p.label !== label);
       }
@@ -954,10 +928,6 @@ export default defineComponent({
         } else {
           if (!this.isLoggedIn) {
             try {
-              const category = this.prizes.find((p) => p.label === label);
-              const deletedItems = category?.items.splice(index, 1) ?? [];
-              const deletedName = deletedItems[0];
-              this.updateGuestPrizes(deletedName);
               Notify.create({
                 type: 'positive',
                 message: `✅ 已刪除 ${label}`,
@@ -978,15 +948,19 @@ export default defineComponent({
 
     // 新增料理項目
     async createNewCategory() {
-      const label = this.newCategoryLabel.trim();
+      const label = cleanString(this.newCategoryLabel);
       if (!label) return;
 
       // 若輸入框還有一筆新料理，先 push 進去
       if (this.newCategoryNewItem.trim()) {
-        this.newCategoryItems.push(this.newCategoryNewItem.trim());
+        const trimmed = this.newCategoryNewItem.trim();
+        if (trimmed && !this.newCategoryItems.includes(trimmed)) {
+          this.newCategoryItems.push(trimmed);
+        }
+        this.newCategoryNewItem = '';
       }
 
-      const items = [...this.newCategoryItems];
+      const items = cleanArray(this.newCategoryItems);
       if (items.length === 0) {
         Notify.create({
           type: 'warning',
@@ -1103,7 +1077,7 @@ export default defineComponent({
 
     // 在新增分類中新增料理
     addNewCategoryDish() {
-      const name = this.newCategoryNewItem.trim();
+      const name = cleanString(this.newCategoryNewItem);
       if (!name || this.newCategoryItems.includes(name)) return;
 
       this.newCategoryItems.push(name);
