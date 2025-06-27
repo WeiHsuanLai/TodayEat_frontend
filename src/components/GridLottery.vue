@@ -841,6 +841,7 @@ export default defineComponent({
                 items: item.items,
                 selectedItem: null,
               }));
+              this.updateGuestPrizes();
             } else {
               const res = await api.get('/mealPresets');
               const allMeals = res.data ?? [];
@@ -861,9 +862,9 @@ export default defineComponent({
                 items: [item],
                 selectedItem: null,
               }));
-            }
 
-            localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+              this.updateGuestPrizes();
+            }
 
             Notify.create({
               type: 'positive',
