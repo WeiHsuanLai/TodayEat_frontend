@@ -9,7 +9,7 @@
       <q-select
         v-model="model"
         :options="options"
-        @update:model-value="loadPrizes"
+        @update:model-value="handleSelectChange"
         label="抽取類別"
         dense
         style="min-width: 120px"
@@ -119,7 +119,7 @@
         <q-card-section class="q-gutter-y-sm">
           <!-- 分類名稱 -->
           <q-input
-            v-if="model === '全部隨機'"
+            v-if="isAddingCategory"
             v-model="newCategoryLabel"
             placeholder="輸入分類名稱"
             dense
@@ -177,6 +177,8 @@ function cleanString(s: string): string {
   return s.trim();
 }
 
+const ADD_NEW_CATEGORY_OPTION = '➕ 新增類別';
+
 export default defineComponent({
   // name: 'GridLottery',
   data() {
@@ -206,8 +208,11 @@ export default defineComponent({
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
       model: ref('全部隨機'),
-      options: ['全部隨機', '早餐類', '午餐類', '晚餐類', '宵夜類'],
-      mealLabels: [] as string[], //取得料理項目
+      options: ['全部隨機'],
+      mealLabels: [] as string[],
+      newCategoryType: 'meal' as 'meal' | 'cuisine',
+      newCategoryFromLabel: '' as string,
+      isAddingCategory: false,
     };
   },
 
@@ -223,6 +228,11 @@ export default defineComponent({
         // ✅ 登出後清除所有資料與狀態
         this.prizes = [];
         this.activeIndex = -1;
+        // ⬇️ 清空使用者自訂分類與選單
+        this.mealLabels = [];
+        this.options = ['全部隨機'];
+
+        // ✅ 重新載入預設資料
         void this.loadPrizes();
         console.log('[登出清除]  已載入預設料理清單');
       }
@@ -257,18 +267,31 @@ export default defineComponent({
     // 取得料理項目
     async loadMealLabels() {
       try {
-        const res = await api.get('/mealPresets');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const labels = res.data?.map((p: any) => p.label) ?? [];
-        this.mealLabels = labels;
-        // 更新 options，保留「全部隨機」在最前面
-        this.options = ['全部隨機', ...labels];
-        console.log('🍱 mealLabels:', this.mealLabels);
+        if (this.isLoggedIn) {
+          const res = await api.get('/user/custom-items', {
+            headers: { Authorization: `Bearer ${useUserStore().token}` },
+            params: {
+              type: 'meal',
+              mode: 'labels',
+            },
+          });
+
+          const labels = res.data?.labels ?? [];
+          this.mealLabels = labels;
+          this.options = ['全部隨機', ...labels, ADD_NEW_CATEGORY_OPTION];
+          console.log('🍱 已載入使用者自訂 labels:', labels);
+        } else {
+          const res = await api.get('/mealPresets');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const labels = res.data?.map((p: any) => p.label) ?? [];
+          this.mealLabels = labels;
+          this.options = ['全部隨機', ...labels];
+          console.log('🍱 預設 mealLabels:', this.mealLabels);
+        }
       } catch (err) {
-        console.error('[loadMealLabels] 無法載入餐別標籤', err);
+        console.error('[loadMealLabels] 無法載入分類標籤', err);
       }
     },
-
     // 載入料理格子
     async loadPrizes() {
       try {
@@ -941,15 +964,36 @@ export default defineComponent({
     },
 
     // 開啟新增分類彈窗
-    openNewCategoryDialog() {
+    openNewCategoryDialog(fromModel: string) {
+      this.isAddingCategory = true;
       this.newCategoryLabel = '';
       this.newCategoryDialog = true;
+
+      // ✅ 明確鎖定新增的 type，用來後續送出 POST 時使用
+      this.newCategoryType =
+        fromModel === ADD_NEW_CATEGORY_OPTION
+          ? 'meal'
+          : this.mealLabels.includes(fromModel)
+            ? 'meal'
+            : 'cuisine';
+
+      this.newCategoryFromLabel = fromModel; // 可選：記錄當前來源 label
     },
 
     // 新增料理項目
     async createNewCategory() {
-      const label = cleanString(this.newCategoryLabel);
-      if (!label) return;
+      const type = this.newCategoryType;
+      const rawLabel = cleanString(this.newCategoryLabel);
+      const label = rawLabel || cleanString(this.newCategoryFromLabel);
+
+      if (!label || label === ADD_NEW_CATEGORY_OPTION) {
+        Notify.create({
+          type: 'warning',
+          message: '⚠️ 請輸入有效的分類名稱',
+          position: 'center',
+        });
+        return;
+      }
 
       // 若輸入框還有一筆新料理，先 push 進去
       if (this.newCategoryNewItem.trim()) {
@@ -968,8 +1012,6 @@ export default defineComponent({
         });
         return;
       }
-
-      const type = this.model === '全部隨機' ? 'cuisine' : 'meal';
 
       if (this.model === '全部隨機') {
         const newPrize = {
@@ -1007,6 +1049,7 @@ export default defineComponent({
           );
           Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
           await this.loadPrizes();
+          await this.loadMealLabels();
         } catch (error: unknown) {
           const err = error as { response?: { status?: number } };
           if (err.response?.status === 409) {
@@ -1056,6 +1099,10 @@ export default defineComponent({
               });
             }
 
+            this.model = label;
+            // 重新載入資料
+            this.newCategoryDialog = false;
+            await this.loadMealLabels();
             await this.loadPrizes();
           } else {
             Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
@@ -1086,16 +1133,19 @@ export default defineComponent({
     },
 
     handleAddNew() {
-      if (this.model === '全部隨機') {
-        // 新增分類流程（可輸入 label）
-        this.newCategoryLabel = '';
-      } else {
-        // 新增料理流程（分類為目前 model）
-        this.newCategoryLabel = this.model; // 鎖定分類名稱，不可修改
-      }
+      this.isAddingCategory = this.model === '全部隨機'; // ✅ 決定是否可編輯分類
+      this.newCategoryLabel = this.isAddingCategory ? '' : this.model;
       this.newCategoryItems = [];
       this.newCategoryNewItem = '';
       this.newCategoryDialog = true;
+    },
+    handleSelectChange(value: string) {
+      if (value === ADD_NEW_CATEGORY_OPTION) {
+        this.openNewCategoryDialog(this.model);
+      } else {
+        this.model = value;
+        void this.loadPrizes(); // 依新選擇載入資料
+      }
     },
     // 已經到 methods 底部了
   },
