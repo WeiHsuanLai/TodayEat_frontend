@@ -275,9 +275,13 @@ export default defineComponent({
             }
           }
 
+          const label = this.model;
+          let apiEndpoint = '';
           // localStorage 沒有 → 根據類型呼叫正確的 API
           try {
             if (this.model === '全部隨機') {
+              apiEndpoint = '/cuisineTypes';
+              console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 載入所有 cuisine
               const res = await api.get('/cuisineTypes');
               const prizeList = res.data ?? [];
@@ -288,6 +292,8 @@ export default defineComponent({
                 selectedItem: null,
               }));
             } else if (this.mealLabels.includes(this.model)) {
+              apiEndpoint = '/mealPresets';
+              console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 是 meal 類別 → 呼叫 /mealPresets
               const res = await api.get('/mealPresets');
               const allMeals = res.data ?? [];
@@ -304,6 +310,8 @@ export default defineComponent({
                 this.prizes = [];
               }
             } else {
+              apiEndpoint = '/cuisineTypes';
+              console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 單一 cuisine 類別
               const res = await api.get('/cuisineTypes');
               const prizeList = res.data ?? [];
