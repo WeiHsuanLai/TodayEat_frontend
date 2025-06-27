@@ -55,9 +55,9 @@
         </div>
 
         <!-- 新增分類按鈕 -->
-        <div v-if="model === '全部隨機'" class="grid-item add-new" @click="openNewCategoryDialog">
+        <div class="grid-item add-new" @click="handleAddNew">
           <q-icon name="add" size="md" color="primary" />
-          <div class="label-text">新增分類</div>
+          <div class="label-text">{{ model === '全部隨機' ? '新增分類' : '新增料理' }}</div>
         </div>
       </div>
       <div>
@@ -117,8 +117,14 @@
         <q-separator />
 
         <q-card-section class="q-gutter-y-sm">
-          <q-input v-model="newCategoryLabel" placeholder="輸入分類名稱" dense outlined />
-
+          <!-- 分類名稱 -->
+          <q-input
+            v-if="model === '全部隨機'"
+            v-model="newCategoryLabel"
+            placeholder="輸入分類名稱"
+            dense
+            outlined
+          />
           <div class="text-subtitle2 q-mt-sm">料理項目</div>
 
           <q-item v-for="(dish, i) in newCategoryItems" :key="i" dense class="q-px-none">
@@ -139,7 +145,16 @@
 
         <q-card-actions align="right">
           <q-btn flat label="取消" color="grey" @click="newCategoryDialog = false" />
-          <q-btn flat label="新增" color="primary" @click="createNewCategory" />
+          <q-btn
+            flat
+            label="新增"
+            color="primary"
+            @click="
+              createNewCategory().catch((err) => {
+                console.error('[createNewCategory] 發生未處理錯誤', err);
+              })
+            "
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -160,6 +175,7 @@ export default defineComponent({
         label: string;
         items: string[];
         selectedItem: string | null;
+        fromLabel?: string;
       }[], // 抽獎格子陣列，每個格子含 label, items, selectedItem。
       activeIndex: -1,
       isRunning: false,
@@ -520,7 +536,7 @@ export default defineComponent({
       prize.selectedItem = selectedItem;
 
       Dialog.create({
-        title: `🍱 今日推薦：${fromLabel} - ${selectedItem}`,
+        title: `🍱 今日${this.currentMeal}推薦：${fromLabel} - ${selectedItem}`,
         message: oldDraw
           ? `您已記錄過 ${oldDraw}。\n是否要覆蓋為 ${fullFood}？`
           : `要記錄此${mealMap[meal]}嗎？`,
@@ -965,6 +981,7 @@ export default defineComponent({
       const label = this.newCategoryLabel.trim();
       if (!label) return;
 
+      // 若輸入框還有一筆新料理，先 push 進去
       if (this.newCategoryNewItem.trim()) {
         this.newCategoryItems.push(this.newCategoryNewItem.trim());
       }
@@ -977,23 +994,37 @@ export default defineComponent({
         });
         return;
       }
-      console.log('[新增分類內容]', { label, items });
 
-      const newPrize = {
-        label,
-        items,
-        selectedItem: null,
-      };
+      const type = this.model === '全部隨機' ? 'cuisine' : 'meal';
 
-      this.prizes.push(newPrize);
+      if (this.model === '全部隨機') {
+        const newPrize = {
+          label,
+          items,
+          selectedItem: null,
+        };
+        this.prizes.push(newPrize);
+      } else {
+        // 其他模式下，每筆料理為一個 prize（同分類）
+        for (const item of items) {
+          this.prizes.push({
+            label: item,
+            items: [item],
+            selectedItem: null,
+            fromLabel: label, // ➜ = model, ex: 早餐類
+          });
+        }
+      }
 
+      // this.prizes.push(newPrize);
+
+      // 清空 UI 狀態
       this.newCategoryDialog = false;
       this.newCategoryItems = [];
       this.newCategoryLabel = '';
       this.newCategoryNewItem = '';
 
       if (this.isLoggedIn) {
-        const type = this.getItemType();
         try {
           await api.post(
             '/user/custom-items/label',
@@ -1005,26 +1036,52 @@ export default defineComponent({
         } catch (error: unknown) {
           const err = error as { response?: { status?: number } };
           if (err.response?.status === 409) {
-            Notify.create({
-              type: 'warning',
-              message: `⚠️ 類別「${label}」已存在，系統將為你追加料理`,
-            });
+            const added: string[] = [];
+            const skipped: string[] = [];
 
             for (const item of items) {
-              await api.post(
-                '/user/custom-items',
-                {
-                  label,
-                  item,
-                  type: 'cuisine',
-                },
-                {
-                  headers: {
-                    Authorization: `Bearer ${useUserStore().token}`,
+              try {
+                await api.post(
+                  '/user/custom-items',
+                  { label, item, type },
+                  {
+                    headers: { Authorization: `Bearer ${useUserStore().token}` },
                   },
-                },
-              );
+                );
+                added.push(item);
+                console.log(`✅ 成功新增 ${item}`);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } catch (itemErr: any) {
+                if (itemErr?.response?.status === 409) {
+                  console.warn(`⚠️ ${item} 已存在，跳過`);
+                  skipped.push(item); // ✅ 補上這行
+                } else {
+                  console.error(`❌ 新增 ${item} 失敗`, itemErr);
+                  Notify.create({
+                    type: 'negative',
+                    message: `❌ 無法新增 ${item}，請稍後再試`,
+                  });
+                }
+              }
             }
+
+            if (added.length || skipped.length) {
+              const message = [
+                added.length ? `✅ 已新增：${added.join('、')}` : '',
+                skipped.length ? `⚠️ 已跳過重複料理：${skipped.join('、')}` : '',
+              ]
+                .filter(Boolean)
+                .join('\n');
+
+              Notify.create({
+                type: 'info',
+                message,
+                position: 'center',
+                timeout: 5000,
+                multiLine: true,
+              });
+            }
+
             await this.loadPrizes();
           } else {
             Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
@@ -1032,12 +1089,14 @@ export default defineComponent({
           }
         }
       } else {
-        if (!this.isLoggedIn) {
-          try {
-            this.updateGuestPrizes();
-          } catch (err) {
-            console.error('[未登入] ❌ 寫入 localStorage 失敗:', err);
-          }
+        try {
+          this.updateGuestPrizes();
+          Notify.create({
+            type: 'info',
+            message: `🔒 未登入，資料已儲存在裝置中`,
+          });
+        } catch (err) {
+          console.error('[未登入] ❌ localStorage 寫入失敗:', err);
         }
       }
     },
@@ -1051,6 +1110,20 @@ export default defineComponent({
       this.newCategoryNewItem = '';
       console.log('[新增料理項目]', this.newCategoryItems);
     },
+
+    handleAddNew() {
+      if (this.model === '全部隨機') {
+        // 新增分類流程（可輸入 label）
+        this.newCategoryLabel = '';
+      } else {
+        // 新增料理流程（分類為目前 model）
+        this.newCategoryLabel = this.model; // 鎖定分類名稱，不可修改
+      }
+      this.newCategoryItems = [];
+      this.newCategoryNewItem = '';
+      this.newCategoryDialog = true;
+    },
+    // 已經到 methods 底部了
   },
 
   // 清除計時器 this.timer
