@@ -257,21 +257,15 @@ export default defineComponent({
 
         // ✅ 未登入 → 從 localStorage guestPrizes 篩出指定分類
         if (!this.isLoggedIn) {
-          const saved = localStorage.getItem('guestPrizes');
+          const key = `guestPrizes:${this.model}`;
+          const saved = localStorage.getItem(key);
           if (saved) {
             try {
               const parsed = JSON.parse(saved); // parsed: Prize[]
-
-              if (this.model === '全部隨機') {
-                this.prizes = parsed;
-              } else {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const found = parsed.find((p: any) => p.label === label);
-                this.prizes = found ? [found] : [];
-              }
+              this.prizes = parsed;
               return;
             } catch (e) {
-              console.warn('❌ 讀取 guestPrizes 時 JSON 解析錯誤', e);
+              console.warn(`❌ 讀取 ${key} 時 JSON 解析錯誤`, e);
             }
           }
 
@@ -291,6 +285,7 @@ export default defineComponent({
                 items: p.items,
                 selectedItem: null,
               }));
+              this.updateGuestPrizes();
             } else if (this.mealLabels.includes(this.model)) {
               apiEndpoint = '/mealPresets';
               console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
@@ -373,6 +368,18 @@ export default defineComponent({
         });
         console.error('loadPrizes failed:', err);
       }
+    },
+
+    // 建立本地資料維護
+    updateGuestPrizes() {
+      const key = `guestPrizes:${this.model}`;
+      const data = this.prizes.map((p) => ({
+        label: p.label,
+        items: p.items,
+        selectedItem: null,
+      }));
+      localStorage.setItem(key, JSON.stringify(data));
+      console.log(`[未登入] ✅ 更新 ${key}:`, data);
     },
 
     // 開始抽取
@@ -751,15 +758,13 @@ export default defineComponent({
         }
       } else {
         // 如果未登入則存在本地
-        try {
-          await nextTick();
-          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-          console.log(
-            '[未登入] ✅ localStorage 更新完成',
-            JSON.parse(localStorage.getItem('guestPrizes') || '[]'),
-          );
-        } catch (err) {
-          console.error('[未登入] ❌ localStorage 寫入失敗', err);
+        if (!this.isLoggedIn) {
+          try {
+            await nextTick();
+            this.updateGuestPrizes();
+          } catch (err) {
+            console.error('[未登入] ❌ localStorage 寫入失敗', err);
+          }
         }
       }
 
@@ -877,10 +882,23 @@ export default defineComponent({
 
       // 若不是全部隨機（例如早餐類），則應該每個 label 是「一個料理」
       const isMealType = this.model !== '全部隨機';
+      const type = isMealType ? 'meal' : 'cuisine';
+
+      const payload = isMealType
+        ? {
+            type,
+            label: this.model,
+            items: [label], // ❗此時 label 是 item 名
+          }
+        : {
+            type,
+            label,
+            items: prize.items,
+          };
 
       Dialog.create({
         title: '刪除確認',
-        message: `是否刪除「${label}」這個料理類別？`,
+        message: `是否刪除「${label}」？`,
         ok: { label: '刪除', color: 'red' },
         cancel: { label: '取消', color: 'grey' },
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -889,20 +907,6 @@ export default defineComponent({
 
         if (this.isLoggedIn) {
           try {
-            const type = isMealType ? 'meal' : 'cuisine';
-
-            const payload = isMealType
-              ? {
-                  type,
-                  label: this.model,
-                  items: [label], // ❗此時 label 是 item 名
-                }
-              : {
-                  type,
-                  label,
-                  items: prize.items,
-                };
-
             await api.delete('/user/custom-items', {
               data: payload,
               headers: {
@@ -922,14 +926,16 @@ export default defineComponent({
             console.warn(`[刪除失敗]`, err);
           }
         } else {
-          try {
-            localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-            Notify.create({
-              type: 'positive',
-              message: `✅ 已刪除 ${label}`,
-            });
-          } catch (err) {
-            console.error('❌ localStorage 更新失敗：', err);
+          if (!this.isLoggedIn) {
+            try {
+              this.updateGuestPrizes();
+              Notify.create({
+                type: 'positive',
+                message: `✅ 已刪除 ${label}`,
+              });
+            } catch (err) {
+              console.error('❌ localStorage 更新失敗：', err);
+            }
           }
         }
       });
@@ -986,11 +992,12 @@ export default defineComponent({
           console.error('新增分類錯誤：', err);
         }
       } else {
-        try {
-          localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
-          console.log('[未登入] ✅ 寫入 localStorage 完成:', this.prizes);
-        } catch (err) {
-          console.error('[未登入] ❌ 寫入 localStorage 失敗:', err);
+        if (!this.isLoggedIn) {
+          try {
+            this.updateGuestPrizes();
+          } catch (err) {
+            console.error('[未登入] ❌ 寫入 localStorage 失敗:', err);
+          }
         }
       }
     },
