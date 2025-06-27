@@ -996,7 +996,7 @@ export default defineComponent({
         try {
           await api.post(
             '/user/custom-items/label',
-            { label, items },
+            { label, items, type: 'cuisine' },
             { headers: { Authorization: `Bearer ${useUserStore().token}` } },
           );
           Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
