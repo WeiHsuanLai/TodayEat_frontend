@@ -298,6 +298,7 @@ export default defineComponent({
                   label: item,
                   items: [item],
                   selectedItem: null,
+                  fromLabel: label,
                 }));
               } else {
                 this.prizes = [];
@@ -771,17 +772,16 @@ export default defineComponent({
         cancel: { label: '取消', color: 'grey' },
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
       }).onOk(async () => {
+        const isRandomAll = this.model === '全部隨機';
+        const payload = isRandomAll ? { type: 'cuisine' } : { type: 'meal', label: this.model };
+
         if (this.isLoggedIn) {
           try {
-            const res = await api.post(
-              '/user/custom-items/reset',
-              {},
-              {
-                headers: {
-                  Authorization: `Bearer ${useUserStore().token}`,
-                },
+            const res = await api.post('/user/custom-items/reset', payload, {
+              headers: {
+                Authorization: `Bearer ${useUserStore().token}`,
               },
-            );
+            });
 
             const customItems = res.data?.customItems ?? {};
             this.prizes = Object.entries(customItems).map(([label, items]) => ({
@@ -804,19 +804,45 @@ export default defineComponent({
             console.error('[resetToDefault][登入模式] 發生錯誤：', err);
           }
         } else {
-          // 未登入（guest 模式）
+          // ✅ 未登入 → 根據 type 呼叫對應預設 API
           try {
-            const res = await api.get('/cuisineTypes');
-            const prizeArray = res.data ?? [];
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            this.prizes = prizeArray.map((item: any) => ({
-              label: item.label,
-              items: item.items,
-              selectedItem: null,
-            }));
+            let prizeArray: any[] = [];
+
+            if (isRandomAll) {
+              const res = await api.get('/cuisineTypes');
+              prizeArray = res.data ?? [];
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              this.prizes = prizeArray.map((item: any) => ({
+                label: item.label,
+                items: item.items,
+                selectedItem: null,
+              }));
+            } else {
+              const res = await api.get('/mealPresets');
+              const allMeals = res.data ?? [];
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const matched = allMeals.find((p: any) => p.label === this.model);
+              if (!matched) {
+                Notify.create({
+                  type: 'warning',
+                  message: `⚠️ 找不到 ${this.model} 的預設項目`,
+                  position: 'center',
+                });
+                return;
+              }
+
+              this.prizes = matched.items.map((item: string) => ({
+                label: item,
+                items: [item],
+                selectedItem: null,
+              }));
+            }
 
             localStorage.setItem('guestPrizes', JSON.stringify(this.prizes));
+
             Notify.create({
               type: 'positive',
               message: '✅ 已重置為預設料理清單',
