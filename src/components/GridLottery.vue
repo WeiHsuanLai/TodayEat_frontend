@@ -942,7 +942,7 @@ export default defineComponent({
       if (this.isLoggedIn) {
         try {
           await api.post(
-            '/user/custom-item/label',
+            '/user/custom-items/label',
             { label, items },
             { headers: { Authorization: `Bearer ${useUserStore().token}` } },
           );
