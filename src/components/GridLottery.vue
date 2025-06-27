@@ -993,16 +993,43 @@ export default defineComponent({
       this.newCategoryNewItem = '';
 
       if (this.isLoggedIn) {
+        const type = this.getItemType();
         try {
           await api.post(
             '/user/custom-items/label',
-            { label, items, type: 'cuisine' },
+            { label, items, type },
             { headers: { Authorization: `Bearer ${useUserStore().token}` } },
           );
           Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
-        } catch (err) {
-          Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
-          console.error('新增分類錯誤：', err);
+          await this.loadPrizes();
+        } catch (error: unknown) {
+          const err = error as { response?: { status?: number } };
+          if (err.response?.status === 409) {
+            Notify.create({
+              type: 'warning',
+              message: `⚠️ 類別「${label}」已存在，系統將為你追加料理`,
+            });
+
+            for (const item of items) {
+              await api.post(
+                '/user/custom-items',
+                {
+                  label,
+                  item,
+                  type: 'cuisine',
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${useUserStore().token}`,
+                  },
+                },
+              );
+            }
+            await this.loadPrizes();
+          } else {
+            Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
+            console.error('新增分類錯誤：', error);
+          }
         }
       } else {
         if (!this.isLoggedIn) {
