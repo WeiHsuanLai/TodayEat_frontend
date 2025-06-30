@@ -14,6 +14,15 @@
         dense
         style="min-width: 120px"
       />
+      <q-btn
+        icon="add"
+        round
+        dense
+        color="primary"
+        @click="openNewCategoryDialog(model)"
+        :disable="isRunning"
+        title="新增料理類別"
+      />
     </div>
 
     <div class="lottery-container">
@@ -111,7 +120,7 @@
     <q-dialog v-model="newCategoryDialog">
       <q-card style="min-width: 300px; max-width: 90vw">
         <q-card-section>
-          <div class="text-h6">新增料理</div>
+          <div class="text-h6">{{ newCategoryTitle }}</div>
         </q-card-section>
 
         <q-separator />
@@ -177,8 +186,6 @@ function cleanString(s: string): string {
   return s.trim();
 }
 
-const ADD_NEW_CATEGORY_OPTION = '➕ 新增類別';
-
 export default defineComponent({
   // name: 'GridLottery',
   data() {
@@ -213,6 +220,7 @@ export default defineComponent({
       newCategoryType: 'meal' as 'meal' | 'cuisine',
       newCategoryFromLabel: '' as string,
       isAddingCategory: false,
+      newCategoryTitle: '新增料理',
     };
   },
 
@@ -241,7 +249,6 @@ export default defineComponent({
 
   mounted() {
     void this.loadPrizes().then(() => {
-      void this.loadPrizes(); //取得料理項目
       void this.loadTodayDraw(); // 等載入完料理後再載入已抽紀錄
     });
   },
@@ -278,7 +285,7 @@ export default defineComponent({
 
           const labels = res.data?.labels ?? [];
           this.mealLabels = labels;
-          this.options = ['全部隨機', ...labels, ADD_NEW_CATEGORY_OPTION];
+          this.options = ['全部隨機', ...labels];
           console.log('🍱 已載入使用者自訂 labels:', labels);
         } else {
           const res = await api.get('/mealPresets');
@@ -965,19 +972,13 @@ export default defineComponent({
 
     // 開啟新增分類彈窗
     openNewCategoryDialog(fromModel: string) {
+      console.log('開啟新增類別');
       this.isAddingCategory = true;
       this.newCategoryLabel = '';
       this.newCategoryDialog = true;
-
-      // ✅ 明確鎖定新增的 type，用來後續送出 POST 時使用
-      this.newCategoryType =
-        fromModel === ADD_NEW_CATEGORY_OPTION
-          ? 'meal'
-          : this.mealLabels.includes(fromModel)
-            ? 'meal'
-            : 'cuisine';
-
-      this.newCategoryFromLabel = fromModel; // 可選：記錄當前來源 label
+      this.newCategoryType = 'meal';
+      this.newCategoryFromLabel = fromModel;
+      this.newCategoryTitle = '新增料理類別';
     },
 
     // 新增料理項目
@@ -985,15 +986,6 @@ export default defineComponent({
       const type = this.newCategoryType;
       const rawLabel = cleanString(this.newCategoryLabel);
       const label = rawLabel || cleanString(this.newCategoryFromLabel);
-
-      if (!label || label === ADD_NEW_CATEGORY_OPTION) {
-        Notify.create({
-          type: 'warning',
-          message: '⚠️ 請輸入有效的分類名稱',
-          position: 'center',
-        });
-        return;
-      }
 
       // 若輸入框還有一筆新料理，先 push 進去
       if (this.newCategoryNewItem.trim()) {
@@ -1042,11 +1034,12 @@ export default defineComponent({
 
       if (this.isLoggedIn) {
         try {
-          await api.post(
-            '/user/custom-items/label',
-            { label, items, type },
-            { headers: { Authorization: `Bearer ${useUserStore().token}` } },
-          );
+          const payload = { label, items, type };
+          console.log('[createNewCategory] 傳送 payload:', payload);
+
+          await api.post('/user/custom-items/label', payload, {
+            headers: { Authorization: `Bearer ${useUserStore().token}` },
+          });
           Notify.create({ type: 'positive', message: `✅ 已新增分類 ${label}` });
           await this.loadPrizes();
           await this.loadMealLabels();
@@ -1138,14 +1131,11 @@ export default defineComponent({
       this.newCategoryItems = [];
       this.newCategoryNewItem = '';
       this.newCategoryDialog = true;
+      this.newCategoryTitle = this.isAddingCategory ? '新增分類' : '新增料理';
     },
     handleSelectChange(value: string) {
-      if (value === ADD_NEW_CATEGORY_OPTION) {
-        this.openNewCategoryDialog(this.model);
-      } else {
-        this.model = value;
-        void this.loadPrizes(); // 依新選擇載入資料
-      }
+      this.model = value;
+      void this.loadPrizes(); // 依新選擇載入資料
     },
     // 已經到 methods 底部了
   },
