@@ -16,6 +16,7 @@ let isColdStartNotified = false;
 
 api.interceptors.request.use((config) => {
   // 標記開始時間
+  console.log('[API Request 發出]', config.method?.toUpperCase(), config.url);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (config as any).metadata = { startTime: new Date() };
   return config;
@@ -25,7 +26,7 @@ api.interceptors.response.use(
   (response) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const duration = new Date().getTime() - (response.config as any).metadata.startTime.getTime();
-    if (duration > 4000 && !isColdStartNotified) {
+    if (duration > 2000 && !isColdStartNotified) {
       Notify.create({
         type: 'info',
         message: '後端可能剛從休眠中喚醒，請稍候...',
