@@ -1170,12 +1170,14 @@ export default defineComponent({
         return;
       }
 
-      Notify.create({
-        type: 'warning',
+      Dialog.create({
         message: `已經抽過今日推薦，是否搜尋附近店家?`,
-        position: 'center',
+        ok: { label: '是', color: 'primary' },
+        cancel: { label: '取消', color: 'grey' },
+      }).onOk(() => {
+        const keyword = drawn.split(' - ').pop() ?? drawn;
+        void this.$router.push({ name: 'MapSearch', query: { keyword } });
       });
-      return;
     },
     // 已經到 methods 底部了
   },

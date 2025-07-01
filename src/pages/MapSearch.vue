@@ -46,20 +46,34 @@
 import { ref, onMounted } from 'vue';
 import { Loader } from '@googlemaps/js-api-loader';
 import { api } from 'src/composables/axios';
+import { useRoute } from 'vue-router';
 
+const route = useRoute();
 const keyword = ref('');
 const map = ref<google.maps.Map | null>(null);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const markers = ref<any[]>([]);
 const userLocation = ref({ lat: 25.0478, lng: 121.5319 }); // 預設台北車站
-const onSearch = () => {
+
+const isSearching = ref(false);
+
+const onSearch = async () => {
   console.log('[🔍 觸發搜尋]', keyword.value);
   if (!keyword.value.trim()) return;
   if (!map.value) {
     console.warn('⚠️ 地圖尚未初始化');
     return;
   }
-  void fetchNearby();
+  if (isSearching.value) {
+    console.log('⏳ 搜尋中，忽略重複觸發');
+    return;
+  }
+  isSearching.value = true;
+  try {
+    await fetchNearby();
+  } finally {
+    isSearching.value = false;
+  }
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +81,8 @@ const places = ref<any[]>([]);
 
 // 建立搜尋區域顯示
 const searchCircle = ref<google.maps.Circle | null>(null);
+
+const hasSearched = ref(false);
 
 // 初始化地圖
 const initMap = () => {
@@ -80,6 +96,14 @@ const initMap = () => {
     center: userLocation.value,
     zoom: 15,
     mapId: import.meta.env.VITE_GOOGLE_MAP_ID,
+  });
+
+  google.maps.event.addListenerOnce(map.value, 'idle', () => {
+    if (keyword.value.trim()) {
+      console.log('✅ 地圖 idle 首次觸發搜尋');
+      hasSearched.value = true;
+      void onSearch();
+    }
   });
 
   addUserLocationMarker();
@@ -154,7 +178,9 @@ const addMarkers = (places: any[]) => {
 // 查詢附近店家
 const fetchNearby = async () => {
   if (!keyword.value.trim() || !map.value) return;
-
+  if (searchCircle.value) {
+    searchCircle.value.setMap(null);
+  }
   try {
     const bounds = map.value.getBounds();
     const center = map.value.getCenter();
@@ -202,6 +228,10 @@ const fetchNearby = async () => {
 };
 
 onMounted(async () => {
+  const initialKeyword = route.query.keyword;
+  if (typeof initialKeyword === 'string' && initialKeyword.trim()) {
+    keyword.value = initialKeyword.trim();
+  }
   try {
     const loader = new Loader({
       apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -214,6 +244,7 @@ onMounted(async () => {
 
     // 載入 marker 與 places library（模組式）
     await Promise.all([loader.importLibrary('marker'), loader.importLibrary('places')]);
+    await loader.importLibrary('geometry');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
