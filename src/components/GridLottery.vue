@@ -5,7 +5,7 @@
       <!-- 顯示目前時段（早餐／午餐／晚餐／消夜） -->
       <div class="time-label">目前時段:{{ currentMeal }}</div>
 
-      <!-- 類別選擇器（全部隨機／四個時段） -->
+      <!-- 類別選擇器（料理國別／四個時段） -->
       <q-select
         v-model="model"
         :options="options"
@@ -14,6 +14,7 @@
         dense
         style="min-width: 120px"
       />
+      <!-- 新增料理類別 -->
       <q-btn
         icon="add"
         round
@@ -53,7 +54,7 @@
 
           <!-- 新增項目或刪除彈窗按鈕 -->
           <q-btn
-            v-if="model === '全部隨機'"
+            v-if="model === '料理國別'"
             icon="add"
             color="primary"
             class="q-my-xs"
@@ -66,7 +67,7 @@
         <!-- 新增分類按鈕 -->
         <div class="grid-item add-new" @click="handleAddNew">
           <q-icon name="add" size="md" color="primary" />
-          <div class="label-text">{{ model === '全部隨機' ? '新增分類' : '新增料理' }}</div>
+          <div class="label-text">{{ model === '料理國別' ? '新增分類' : '新增料理' }}</div>
         </div>
       </div>
       <div>
@@ -90,13 +91,15 @@
 
         <q-card-section class="q-gutter-y-sm">
           <!-- 迴圈取得每個料理 -->
-          <q-item v-for="(dish, i) in dialog.items" :key="i" dense>
-            <q-item-section>{{ dish }}</q-item-section>
-            <!-- 刪除料理項目上的 X -->
-            <q-item-section side>
-              <q-btn dense flat icon="delete" color="red" @click="removeDish(i)" />
-            </q-item-section>
-          </q-item>
+          <div class="scrollable-section">
+            <q-item v-for="(dish, i) in dialog.items" :key="i" dense>
+              <q-item-section>{{ dish }}</q-item-section>
+              <!-- 刪除料理項目上的 X -->
+              <q-item-section side>
+                <q-btn dense flat icon="delete" color="red" @click="removeDish(i)" />
+              </q-item-section>
+            </q-item>
+          </div>
 
           <!-- 新增料理 -->
           <q-input
@@ -214,8 +217,8 @@ export default defineComponent({
       newCategoryLabel: '',
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
-      model: ref('全部隨機'),
-      options: ['全部隨機'],
+      model: ref('料理國別'),
+      options: ['料理國別'],
       mealLabels: [] as string[],
       newCategoryType: 'meal' as 'meal' | 'cuisine',
       newCategoryFromLabel: '' as string,
@@ -238,7 +241,7 @@ export default defineComponent({
         this.activeIndex = -1;
         // ⬇️ 清空使用者自訂分類與選單
         this.mealLabels = [];
-        this.options = ['全部隨機'];
+        this.options = ['料理國別'];
 
         // ✅ 重新載入預設資料
         void this.loadPrizes();
@@ -285,14 +288,14 @@ export default defineComponent({
 
           const labels = res.data?.labels ?? [];
           this.mealLabels = labels;
-          this.options = ['全部隨機', ...labels];
+          this.options = ['料理國別', ...labels];
           console.log('🍱 已載入使用者自訂 labels:', labels);
         } else {
           const res = await api.get('/mealPresets');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const labels = res.data?.map((p: any) => p.label) ?? [];
           this.mealLabels = labels;
-          this.options = ['全部隨機', ...labels];
+          this.options = ['料理國別', ...labels];
           console.log('🍱 預設 mealLabels:', this.mealLabels);
         }
       } catch (err) {
@@ -304,7 +307,7 @@ export default defineComponent({
       try {
         const label = this.model;
 
-        const isRandomAll = label === '全部隨機';
+        const isRandomAll = label === '料理國別';
         // 根據選擇決定查詢類型（type)
         if (this.mealLabels.length === 0) {
           await this.loadMealLabels();
@@ -329,7 +332,7 @@ export default defineComponent({
           let apiEndpoint = '';
           // localStorage 沒有 → 根據類型呼叫正確的 API
           try {
-            if (this.model === '全部隨機') {
+            if (this.model === '料理國別') {
               apiEndpoint = '/cuisineTypes';
               console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 載入所有 cuisine
@@ -692,7 +695,7 @@ export default defineComponent({
 
     // 封裝 type 格式
     getItemType() {
-      return this.model === '全部隨機'
+      return this.model === '料理國別'
         ? 'cuisine'
         : this.mealLabels.includes(this.model)
           ? 'meal'
@@ -814,7 +817,7 @@ export default defineComponent({
         cancel: { label: '取消', color: 'grey' },
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
       }).onOk(async () => {
-        const isRandomAll = this.model === '全部隨機';
+        const isRandomAll = this.model === '料理國別';
         const payload = isRandomAll ? { type: 'cuisine' } : { type: 'meal', label: this.model };
 
         if (this.isLoggedIn) {
@@ -910,8 +913,8 @@ export default defineComponent({
 
       const label = prize.label;
 
-      // 若不是全部隨機（例如早餐類），則應該每個 label 是「一個料理」
-      const isMealType = this.model !== '全部隨機';
+      // 若不是料理國別（例如早餐類），則應該每個 label 是「一個料理」
+      const isMealType = this.model !== '料理國別';
       const type = isMealType ? 'meal' : 'cuisine';
 
       const payload = isMealType
@@ -1005,7 +1008,7 @@ export default defineComponent({
         return;
       }
 
-      if (this.model === '全部隨機') {
+      if (this.model === '料理國別') {
         const newPrize = {
           label,
           items,
@@ -1126,7 +1129,7 @@ export default defineComponent({
     },
 
     handleAddNew() {
-      this.isAddingCategory = this.model === '全部隨機'; // ✅ 決定是否可編輯分類
+      this.isAddingCategory = this.model === '料理國別'; // ✅ 決定是否可編輯分類
       this.newCategoryLabel = this.isAddingCategory ? '' : this.model;
       this.newCategoryItems = [];
       this.newCategoryNewItem = '';
@@ -1241,5 +1244,11 @@ export default defineComponent({
 .time-label {
   font-size: 1.25rem;
   font-weight: bold;
+}
+
+.scrollable-section {
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 </style>
