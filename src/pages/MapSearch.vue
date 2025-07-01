@@ -25,6 +25,19 @@
       <div class="col-5 q-pl-md" style="max-height: 450px; overflow-y: auto">
         <q-list bordered separator dense v-if="places.length">
           <q-item v-for="(place, index) in places" :key="index" clickable>
+            <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
+              <q-img
+                :src="place.photoUrl || ''"
+                style="border-radius: 8px; width: 64px; height: 64px"
+                :ratio="1"
+                spinner-color="grey-5"
+              >
+                <template #error>
+                  <q-icon name="image_not_supported" size="32px" color="grey-5" />
+                </template>
+              </q-img>
+            </q-item-section>
+
             <q-item-section>
               <q-item-label
                 ><strong>{{ place.name }}</strong></q-item-label
@@ -215,13 +228,8 @@ const fetchNearby = async () => {
 
     const res = await api.get('/places/nearby-stores', { params });
     console.log('res', res);
-
-    if (res.data?.results?.length) {
-      places.value = res.data.results || [];
-      addMarkers(res.data.results);
-    } else {
-      console.warn('❗ 沒有找到結果');
-    }
+    places.value = res.data.results;
+    addMarkers(res.data.results);
   } catch (err) {
     console.error('🔴 API 錯誤:', err);
   }
