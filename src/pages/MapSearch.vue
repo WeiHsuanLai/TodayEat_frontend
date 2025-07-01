@@ -1,19 +1,44 @@
 <template>
   <q-page class="q-pa-md">
-    <div class="text-h6 q-mb-md">📍 搜尋附近店家</div>
-    <q-input
-      v-model="keyword"
-      label="輸入關鍵字"
-      @keyup.enter="onSearch"
-      @compositionend="onSearch"
-      dense
-    >
-      <template #append>
-        <q-btn flat icon="search" @click="onSearch" />
-      </template>
-    </q-input>
+    <div class="q-mt-md row">
+      <div class="text-h6 q-mb-md col-7">搜尋附近店家</div>
+      <div class="col-5 q-pl-md">
+        <q-input
+          v-model="keyword"
+          label="輸入關鍵字"
+          @keyup.enter="onSearch"
+          @compositionend="onSearch"
+          dense
+        >
+          <template #append>
+            <q-btn flat icon="search" @click="onSearch" />
+          </template>
+        </q-input>
+      </div>
+    </div>
 
-    <div id="map" style="width: 30%; height: 300px" class="q-mt-md"></div>
+    <div class="q-mt-md row">
+      <!-- 地圖區塊 -->
+      <div id="map" class="col-7" style="min-height: 450px; min-width: 450px"></div>
+
+      <!-- 清單區塊 -->
+      <div class="col-5 q-pl-md" style="max-height: 450px; overflow-y: auto">
+        <q-list bordered separator dense v-if="places.length">
+          <q-item v-for="(place, index) in places" :key="index" clickable>
+            <q-item-section>
+              <q-item-label
+                ><strong>{{ place.name }}</strong></q-item-label
+              >
+              <q-item-label caption>{{ place.vicinity }}</q-item-label>
+              <q-item-label caption>
+                ⭐️ {{ place.rating ?? '無評分' }}（{{ place.user_ratings_total ?? 0 }} 則）
+              </q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <div v-else class="text-grey">尚無搜尋結果</div>
+      </div>
+    </div>
   </q-page>
 </template>
 
@@ -37,6 +62,12 @@ const onSearch = () => {
   void fetchNearby();
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const places = ref<any[]>([]);
+
+// 建立搜尋區域顯示
+const searchCircle = ref<google.maps.Circle | null>(null);
+
 // 初始化地圖
 const initMap = () => {
   if (!window.google || !window.google.maps) {
@@ -58,6 +89,11 @@ const initMap = () => {
 const clearMarkers = () => {
   markers.value.forEach((m) => (m.map = null));
   markers.value = [];
+
+  if (searchCircle.value) {
+    searchCircle.value.setMap(null);
+    searchCircle.value = null;
+  }
 };
 
 const addUserLocationMarker = () => {
@@ -117,19 +153,45 @@ const addMarkers = (places: any[]) => {
 
 // 查詢附近店家
 const fetchNearby = async () => {
-  if (!keyword.value.trim()) return;
+  if (!keyword.value.trim() || !map.value) return;
 
   try {
+    const bounds = map.value.getBounds();
+    const center = map.value.getCenter();
+    const ne = bounds?.getNorthEast();
+
+    if (!bounds || !center || !ne) {
+      console.warn('⚠️ 無法取得地圖視野資訊，改用預設範圍');
+      return;
+    }
+
+    // 計算畫面中心到右上角的距離作為 radius
+    const radius = google.maps.geometry.spherical.computeDistanceBetween(center, ne);
+    // 畫出搜尋範圍的圓形
+    searchCircle.value = new google.maps.Circle({
+      center: center.toJSON(), // 使用地圖中心
+      radius,
+      map: map.value,
+      fillColor: '#4285F4',
+      fillOpacity: 0.2,
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.6,
+      strokeWeight: 1,
+    });
+
     const params = {
       keyword: keyword.value,
       lat: userLocation.value.lat,
       lng: userLocation.value.lng,
+      radius: Math.floor(radius),
     };
+    console.log('params', params);
 
     const res = await api.get('/places/nearby-stores', { params });
     console.log('res', res);
 
     if (res.data?.results?.length) {
+      places.value = res.data.results || [];
       addMarkers(res.data.results);
     } else {
       console.warn('❗ 沒有找到結果');
@@ -164,6 +226,8 @@ onMounted(async () => {
         void initMap();
       },
     );
+
+    await loader.importLibrary('geometry');
   } catch (err) {
     console.error('Google Maps 載入失敗:', err);
   }
