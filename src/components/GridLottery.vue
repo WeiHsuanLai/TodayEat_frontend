@@ -69,6 +69,11 @@
           <q-icon name="add" size="md" color="primary" />
           <div class="label-text">{{ model === '料理國別' ? '新增分類' : '新增料理' }}</div>
         </div>
+        <!-- 地圖搜尋格子 -->
+        <div class="grid-item map-search" @click="handleMapSearch">
+          <q-icon name="place" size="md" color="blue" />
+          <div class="label-text">地圖搜尋</div>
+        </div>
       </div>
       <div>
         <button class="start-btn q-ma-sm" @click="startLottery" :disabled="isRunning">
@@ -1139,6 +1144,38 @@ export default defineComponent({
     handleSelectChange(value: string) {
       this.model = value;
       void this.loadPrizes(); // 依新選擇載入資料
+    },
+    handleMapSearch() {
+      const userStore = useUserStore();
+      // 判斷目前是哪一餐
+      const hour = new Date().getHours();
+      let mealKey: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+
+      if (hour >= 3 && hour < 11) mealKey = 'breakfast';
+      else if (hour >= 11 && hour < 15) mealKey = 'lunch';
+      else if (hour >= 15 && hour < 21) mealKey = 'dinner';
+      else mealKey = 'midnight';
+
+      const drawn = userStore.foodDrawToday?.[mealKey];
+
+      if (!drawn) {
+        Dialog.create({
+          title: '地圖搜尋今日推薦料理',
+          message: `您尚未抽取今日${this.currentMeal}推薦，要現在抽取嗎？`,
+          ok: { label: '是，馬上抽', color: 'primary' },
+          cancel: { label: '取消', color: 'grey' },
+        }).onOk(() => {
+          this.startLottery();
+        });
+        return;
+      }
+
+      Notify.create({
+        type: 'warning',
+        message: `已經抽過今日推薦，是否搜尋附近店家?`,
+        position: 'center',
+      });
+      return;
     },
     // 已經到 methods 底部了
   },

@@ -13,6 +13,11 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: 'mapsearch',
+        component: () => import('pages/MapSearch.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: 'FoodDrawHistory',
         component: () => import('pages/FoodDrawHistory.vue'),
         meta: { requiresAuth: true },
