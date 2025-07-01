@@ -217,24 +217,41 @@ export const useUserStore = defineStore('user', {
 
     async loadPrizes() {
       const { api } = useApi();
+      const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
+      const config = this.token ? { headers: { Authorization: `Bearer ${this.token}` } } : {};
+
+      let retry = false;
+
       try {
-        const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
-
-        const config = this.token ? { headers: { Authorization: `Bearer ${this.token}` } } : {};
-
         const res = await api.get(endpoint, config);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.customItems = res.data.map((p: any) => ({
           label: p.label,
           items: p.items,
         }));
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
-        console.error('[loadPrizes] 載入失敗', err);
-        Notify.create({
-          type: 'negative',
-          message: '載入推薦料理失敗，請稍後再試',
-          position: 'center',
-        });
+        console.warn('[loadPrizes] 第一次失敗，3 秒後重試');
+        retry = true;
+      }
+
+      if (retry) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        try {
+          const res = await api.get(endpoint, config);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          this.customItems = res.data.map((p: any) => ({
+            label: p.label,
+            items: p.items,
+          }));
+        } catch (err2) {
+          console.error('[loadPrizes] 重試後仍失敗', err2);
+          Notify.create({
+            type: 'negative',
+            message: '載入推薦料理失敗，請稍後再試',
+            position: 'center',
+          });
+        }
       }
     },
   },
