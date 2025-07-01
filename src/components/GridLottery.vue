@@ -1143,7 +1143,34 @@ export default defineComponent({
     },
     handleSelectChange(value: string) {
       this.model = value;
-      void this.loadPrizes(); // 依新選擇載入資料
+      this.activeIndex = -1;
+      void this.loadPrizes().then(() => {
+        // 等資料載入後再檢查有沒有今日推薦
+        this.applyTodayDrawHighlight();
+      });
+    },
+    applyTodayDrawHighlight() {
+      const userStore = useUserStore();
+      const meals = userStore.foodDrawToday;
+      if (!meals) return;
+
+      const hour = new Date().getHours();
+      let meal: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+      if (hour >= 3 && hour < 11) meal = 'breakfast';
+      else if (hour >= 11 && hour < 15) meal = 'lunch';
+      else if (hour >= 15 && hour < 21) meal = 'dinner';
+      else meal = 'midnight';
+
+      const record = meals[meal];
+      if (!record || !record.includes(' - ')) return;
+
+      const [label, selectedItem] = record.split(' - ');
+      if (!label) return;
+      const index = this.prizes.findIndex((p) => cleanString(p.label) === cleanString(label));
+      if (index !== -1) {
+        this.prizes[index]!.selectedItem = selectedItem ?? null;
+        this.activeIndex = index;
+      }
     },
     handleMapSearch() {
       const userStore = useUserStore();
