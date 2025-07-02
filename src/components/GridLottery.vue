@@ -25,6 +25,11 @@
         title="新增料理類別"
       />
     </div>
+    <div class="text-center today-recommend">
+      今日{{ currentMeal }}推薦：
+      <span v-if="todayRecommendation" class="text-red">{{ todayRecommendation }}</span>
+      <span v-else class="text-grey">尚未抽取</span>
+    </div>
 
     <div class="lottery-container">
       <!-- 料理格子 -->
@@ -179,7 +184,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, nextTick, ref } from 'vue';
+import { defineComponent, nextTick } from 'vue';
 import { api } from '../composables/axios';
 import { Notify, Dialog } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
@@ -222,7 +227,7 @@ export default defineComponent({
       newCategoryLabel: '',
       newCategoryItems: [] as string[],
       newCategoryNewItem: '',
-      model: ref('料理國別'),
+      model: '料理國別',
       options: ['料理國別'],
       mealLabels: [] as string[],
       newCategoryType: 'meal' as 'meal' | 'cuisine',
@@ -276,6 +281,18 @@ export default defineComponent({
       if (hour >= 11 && hour < 15) return '午餐';
       if (hour >= 15 && hour < 21) return '晚餐';
       return '宵夜';
+    },
+    todayRecommendation(): string | null {
+      const userStore = useUserStore();
+      const hour = new Date().getHours();
+      let mealKey: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
+
+      if (hour >= 3 && hour < 11) mealKey = 'breakfast';
+      else if (hour >= 11 && hour < 15) mealKey = 'lunch';
+      else if (hour >= 15 && hour < 21) mealKey = 'dinner';
+      else mealKey = 'midnight';
+
+      return userStore.foodDrawToday?.[mealKey] ?? null;
     },
   },
   methods: {
@@ -610,6 +627,11 @@ export default defineComponent({
           api
             .post('/record/food-draw', { meal, food: fullFood })
             .then(() => {
+              // 同步更新抽過紀錄
+              userStore.foodDrawToday = {
+                ...userStore.foodDrawToday,
+                [meal]: fullFood,
+              };
               Notify.create({
                 type: 'positive',
                 message: `🍽️ 已記錄${selectedItem}`,
@@ -992,8 +1014,10 @@ export default defineComponent({
     // 新增料理項目
     async createNewCategory() {
       const type = this.newCategoryType;
-      const rawLabel = cleanString(this.newCategoryLabel);
-      const label = rawLabel || cleanString(this.newCategoryFromLabel);
+      const label =
+        this.isAddingCategory && this.newCategoryLabel
+          ? cleanString(this.newCategoryLabel)
+          : cleanString(this.newCategoryFromLabel);
 
       // 若輸入框還有一筆新料理，先 push 進去
       if (this.newCategoryNewItem.trim()) {
@@ -1100,11 +1124,14 @@ export default defineComponent({
               });
             }
 
-            this.model = label;
             // 重新載入資料
             this.newCategoryDialog = false;
             await this.loadMealLabels();
-            await this.loadPrizes();
+            // await this.loadPrizes();
+            this.model = label;
+            console.log('載入的資料', this.model);
+
+            this.handleSelectChange(this.model);
           } else {
             Notify.create({ type: 'negative', message: `❌ 新增分類失敗，已暫存於前端` });
             console.error('新增分類錯誤：', error);
@@ -1135,6 +1162,7 @@ export default defineComponent({
 
     handleAddNew() {
       this.isAddingCategory = this.model === '料理國別'; // ✅ 決定是否可編輯分類
+      this.newCategoryFromLabel = this.model;
       this.newCategoryLabel = this.isAddingCategory ? '' : this.model;
       this.newCategoryItems = [];
       this.newCategoryNewItem = '';
@@ -1316,5 +1344,11 @@ export default defineComponent({
   max-height: 200px;
   overflow-y: auto;
   padding-right: 8px;
+}
+
+.today-recommend {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 16px;
 }
 </style>
