@@ -345,16 +345,42 @@ export default defineComponent({
           console.log('⚠️ [未登入] 目前 model:', this.model);
 
           const key = `guestPrizes:${this.model}`;
+          const timestampKey = `${key}:timestamp`;
           const saved = localStorage.getItem(key);
-          if (saved) {
+          const savedAt = localStorage.getItem(timestampKey);
+
+          // ⏰ 設定過期時間（例如一天 = 86400000 毫秒）
+          const isExpired = !savedAt || Date.now() - parseInt(savedAt) > 1000 * 60 * 60 * 24;
+
+          if (saved && !isExpired) {
             try {
               const parsed = JSON.parse(saved); // parsed: Prize[]
               this.prizes = parsed;
-              console.log('我出去搂');
+              console.log('[guestPrizes] 已使用快取資料：', this.prizes);
               return;
             } catch (e) {
               console.warn(`❌ 讀取 ${key} 時 JSON 解析錯誤`, e);
             }
+          }
+
+          // 👉 若無快取或已過期，重新抓 API 並儲存
+          if (this.model === '料理國別') {
+            const res = await api.get('/cuisineTypes');
+            const prizeList = res.data ?? [];
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            this.prizes = prizeList.map((p: any) => ({
+              label: p.label,
+              items: p.items,
+              selectedItem: null,
+              imageUrl: p.imageUrl || '',
+            }));
+
+            localStorage.setItem(key, JSON.stringify(this.prizes));
+            localStorage.setItem(timestampKey, Date.now().toString());
+
+            console.log('[guestPrizes] 🔄 快取已更新：', this.prizes);
+            return;
           }
 
           const label = this.model;
