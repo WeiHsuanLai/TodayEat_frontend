@@ -1,9 +1,0 @@
-services:
-  - type: static
-    name: todayeat-frontend
-    buildCommand: quasar build -m spa
-    staticPublishPath: dist/spa
-    routes:
-      - type: rewrite
-        source: /.*
-        destination: /index.html
