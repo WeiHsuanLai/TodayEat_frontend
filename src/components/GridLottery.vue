@@ -1056,6 +1056,7 @@ export default defineComponent({
           }
         } else {
           if (!this.isLoggedIn) {
+            this.updateGuestPrizes();
             try {
               Notify.create({
                 type: 'positive',
