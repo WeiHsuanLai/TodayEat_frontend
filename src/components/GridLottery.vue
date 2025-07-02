@@ -31,62 +31,66 @@
       <span v-else class="text-grey">尚未抽取</span>
     </div>
 
-    <div class="lottery-container">
-      <!-- 料理格子 -->
-      <div class="grid" :style="gridStyle">
-        <div
-          v-for="(item, index) in prizes"
-          :key="index"
-          :class="['grid-item', { active: index === activeIndex }]"
-          size="sm"
-          :title="item.items.join(', ')"
-        >
-          <!-- 刪除按鈕 -->
-          <q-btn
-            size="xs"
-            icon="close"
-            flat
-            round
-            dense
-            class="delete-btn"
-            color="red"
-            @click.stop="deletePrize(index)"
-          />
+    <div class="flex flex-center">
+      <div class="lottery-container col-6">
+        <!-- 料理格子 -->
+        <div class="grid" :style="gridStyle">
+          <div
+            v-for="(item, index) in prizes"
+            :key="index"
+            :class="['grid-item', { active: index === activeIndex }]"
+            size="sm"
+            :title="item.items.join(', ')"
+          >
+            <!-- 刪除按鈕 -->
+            <q-btn
+              size="xs"
+              icon="close"
+              flat
+              round
+              dense
+              class="delete-btn"
+              color="red"
+              @click.stop="deletePrize(index)"
+            />
 
-          <!-- ✅ 新增圖片顯示 -->
-          <q-img
-            :src="item.imageUrl || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image'"
-            style="width: 50px; height: 50px; object-fit: cover"
-          />
+            <!-- ✅ 新增圖片顯示 -->
+            <q-img
+              :src="item.imageUrl || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image'"
+              style="width: 90px; height: 90px; object-fit: cover"
+            />
 
-          <!-- 分類名稱與抽中料理 -->
-          <div class="label-text">{{ item.label }}</div>
-          <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
+            <!-- 分類名稱與抽中料理 -->
+            <div class="label-text">{{ item.label }}</div>
+            <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
 
-          <!-- 新增項目或刪除彈窗按鈕 -->
-          <q-btn
-            v-if="model === '料理國別'"
-            icon="add"
-            color="primary"
-            class="q-my-xs"
-            round
-            size="xs"
-            @click="showItemDetail(item)"
-          />
-        </div>
+            <!-- 新增項目或刪除彈窗按鈕 -->
+            <div class="overlay-btn">
+              <q-btn
+                v-if="model === '料理國別'"
+                icon="add"
+                flat
+                round
+                size="xs"
+                @click="showItemDetail(item)"
+                class="custom-overlay-button"
+              />
+            </div>
+          </div>
 
-        <!-- 新增分類按鈕 -->
-        <div class="grid-item add-new" @click="handleAddNew">
-          <q-icon name="add" size="md" color="primary" />
-          <div class="label-text">{{ model === '料理國別' ? '新增分類' : '新增料理' }}</div>
-        </div>
-        <!-- 地圖搜尋格子 -->
-        <div class="grid-item map-search" @click="handleMapSearch">
-          <q-icon name="place" size="md" color="blue" />
-          <div class="label-text">地圖搜尋</div>
+          <!-- 新增分類按鈕 -->
+          <div class="grid-item add-new" @click="handleAddNew">
+            <q-icon name="add" size="md" color="primary" />
+            <div class="label-text">{{ model === '料理國別' ? '新增分類' : '新增料理' }}</div>
+          </div>
+          <!-- 地圖搜尋格子 -->
+          <div class="grid-item map-search" @click="handleMapSearch">
+            <q-icon name="place" size="md" color="blue" />
+            <div class="label-text">地圖搜尋</div>
+          </div>
         </div>
       </div>
-      <div>
+      <div class="col-6">
         <button class="start-btn q-ma-sm" @click="startLottery" :disabled="isRunning">
           {{ isRunning ? '推薦中...' : '今日推薦' }}
         </button>
@@ -1324,10 +1328,12 @@ export default defineComponent({
 .grid {
   width: 90vw;
   max-width: 350px;
-  aspect-ratio: 1;
+  height: 350px; /* ✅ 明確高度 */
+  overflow-y: auto; /* ✅ 垂直捲動 */
   display: grid;
   gap: 10px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* ✅ 可調整 */
+  padding: 5px;
 }
 
 .grid-item {
@@ -1420,5 +1426,22 @@ export default defineComponent({
   font-size: 1.2rem;
   font-weight: bold;
   margin-bottom: 16px;
+}
+
+.overlay-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.6); /* 半透明白底 */
+  border-radius: 50%;
+  padding: 4px;
+  z-index: 5;
+}
+
+.custom-overlay-button {
+  background-color: rgba(255, 255, 255, 0.1); /* 半透明白底 */
+  border: 1px solid #ccc; /* 淡灰邊框 */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
