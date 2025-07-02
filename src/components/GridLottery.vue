@@ -53,6 +53,12 @@
             @click.stop="deletePrize(index)"
           />
 
+          <!-- ✅ 新增圖片顯示 -->
+          <q-img
+            :src="item.imageUrl || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image'"
+            style="width: 50px; height: 50px; object-fit: cover"
+          />
+
           <!-- 分類名稱與抽中料理 -->
           <div class="label-text">{{ item.label }}</div>
           <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
@@ -208,6 +214,7 @@ export default defineComponent({
         items: string[];
         selectedItem: string | null;
         fromLabel?: string;
+        imageUrl?: string;
       }[], // 抽獎格子陣列，每個格子含 label, items, selectedItem。
       activeIndex: -1,
       isRunning: false,
@@ -307,7 +314,6 @@ export default defineComponent({
               mode: 'labels',
             },
           });
-
           const labels = res.data?.labels ?? [];
           this.mealLabels = labels;
           this.options = ['料理國別', ...labels];
@@ -318,7 +324,6 @@ export default defineComponent({
           const labels = res.data?.map((p: any) => p.label) ?? [];
           this.mealLabels = labels;
           this.options = ['料理國別', ...labels];
-          console.log('🍱 預設 mealLabels:', this.mealLabels);
         }
       } catch (err) {
         console.error('[loadMealLabels] 無法載入分類標籤', err);
@@ -328,7 +333,6 @@ export default defineComponent({
     async loadPrizes() {
       try {
         const label = this.model;
-
         const isRandomAll = label === '料理國別';
         // 根據選擇決定查詢類型（type)
         if (this.mealLabels.length === 0) {
@@ -338,12 +342,15 @@ export default defineComponent({
 
         // ✅ 未登入 → 從 localStorage guestPrizes 篩出指定分類
         if (!this.isLoggedIn) {
+          console.log('⚠️ [未登入] 目前 model:', this.model);
+
           const key = `guestPrizes:${this.model}`;
           const saved = localStorage.getItem(key);
           if (saved) {
             try {
               const parsed = JSON.parse(saved); // parsed: Prize[]
               this.prizes = parsed;
+              console.log('我出去搂');
               return;
             } catch (e) {
               console.warn(`❌ 讀取 ${key} 時 JSON 解析錯誤`, e);
@@ -352,22 +359,33 @@ export default defineComponent({
 
           const label = this.model;
           let apiEndpoint = '';
+          console.log('⚠️ [進入前] 目前 model:', this.model);
           // localStorage 沒有 → 根據類型呼叫正確的 API
           try {
             if (this.model === '料理國別') {
+              console.log('[路徑] 料理國別 (未登入)');
               apiEndpoint = '/cuisineTypes';
-              console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
-              // 載入所有 cuisine
               const res = await api.get('/cuisineTypes');
               const prizeList = res.data ?? [];
+              console.log(
+                '[DEBUG] 回傳清單:',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                prizeList.map((p: any) => ({
+                  label: p.label,
+                  imageUrl: p.imageUrl,
+                })),
+              );
+
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               this.prizes = prizeList.map((p: any) => ({
                 label: p.label,
                 items: p.items,
                 selectedItem: null,
+                imageUrl: p.imageUrl || '',
               }));
               this.updateGuestPrizes();
             } else if (this.mealLabels.includes(this.model)) {
+              console.log('[路徑] meal 類別 (未登入)');
               apiEndpoint = '/mealPresets';
               console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 是 meal 類別 → 呼叫 /mealPresets
@@ -386,6 +404,7 @@ export default defineComponent({
                 this.prizes = [];
               }
             } else {
+              console.log('[路徑] 單一 cuisine 類別 (未登入)');
               apiEndpoint = '/cuisineTypes';
               console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
               // 單一 cuisine 類別
@@ -393,7 +412,22 @@ export default defineComponent({
               const prizeList = res.data ?? [];
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const found = prizeList.find((p: any) => p.label === label);
-              this.prizes = found ? [{ ...found, selectedItem: null }] : [];
+              this.prizes = found
+                ? [
+                    {
+                      label: found.label,
+                      items: found.items,
+                      selectedItem: null,
+                      imageUrl: found.imageUrl || '',
+                    },
+                  ]
+                : [];
+              console.log('[DEBUG] 搜尋目標 label:', label);
+              console.log(
+                '[DEBUG] 回傳清單:',
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                prizeList.map((p: { label: any }) => p.label),
+              );
             }
           } catch (err) {
             Notify.create({
@@ -420,6 +454,7 @@ export default defineComponent({
           headers: { Authorization: `Bearer ${useUserStore().token}` },
           params,
         });
+        console.log('res', res);
 
         const filterType = res.data?.filterType;
 
@@ -435,11 +470,15 @@ export default defineComponent({
           }));
         } else {
           const raw = res.data?.customItems ?? {};
-          this.prizes = Object.entries(raw).map(([label, items]) => ({
-            label,
-            items: items as string[],
-            selectedItem: null,
-          }));
+          this.prizes = Object.entries(raw).map(([label, data]) => {
+            const entry = data as { items: string[]; imageUrl?: string };
+            return {
+              label,
+              items: Array.isArray(entry.items) ? entry.items : [],
+              selectedItem: null,
+              imageUrl: entry.imageUrl || '',
+            };
+          });
         }
       } catch (err) {
         Notify.create({
@@ -458,6 +497,7 @@ export default defineComponent({
         label: p.label,
         items: p.items,
         selectedItem: null,
+        imageUrl: p.imageUrl || '',
       }));
       localStorage.setItem(key, JSON.stringify(data));
 
@@ -860,6 +900,7 @@ export default defineComponent({
               label,
               items: items as string[],
               selectedItem: null,
+              imageUrl: '',
             }));
 
             Notify.create({
@@ -890,6 +931,7 @@ export default defineComponent({
                 label: item.label,
                 items: item.items,
                 selectedItem: null,
+                imageUrl: item.imageUrl,
               }));
               this.updateGuestPrizes();
             } else {
@@ -911,6 +953,7 @@ export default defineComponent({
                 label: item,
                 items: [item],
                 selectedItem: null,
+                imageUrl: '',
               }));
 
               this.updateGuestPrizes();
