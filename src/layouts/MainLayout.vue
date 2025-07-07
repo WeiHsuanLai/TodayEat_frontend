@@ -236,8 +236,9 @@ function handleRegister() {
 }
 
 // 登出
-function logout() {
-  void userStore.logout();
+async function logout() {
+  await userStore.logout();
+  await router.push('/');
 }
 
 function goToForgotPage(data: { email: string }) {

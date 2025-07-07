@@ -263,7 +263,7 @@ export default defineComponent({
         // ⬇️ 清空使用者自訂分類與選單
         this.mealLabels = [];
         this.options = ['料理國別'];
-
+        this.model = '料理國別';
         // ✅ 重新載入預設資料
         void this.loadPrizes();
         console.log('[登出清除]  已載入預設料理清單');
