@@ -144,9 +144,9 @@
         <q-item clickable v-ripple to="/mapsearch">
           <q-item-section> 地圖搜尋 </q-item-section>
         </q-item>
-        <q-item clickable v-ripple to="/admin">
+        <!-- <q-item clickable v-ripple to="/admin">
           <q-item-section> 管理員頁面 </q-item-section>
-        </q-item>
+        </q-item> -->
       </q-list>
     </q-drawer>
 
