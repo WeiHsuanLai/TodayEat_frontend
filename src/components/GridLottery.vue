@@ -34,7 +34,7 @@
     <div class="flex flex-center">
       <div class="lottery-container col-6">
         <!-- 料理格子 -->
-        <div class="grid" :style="gridStyle">
+        <div class="grid">
           <div
             v-for="(item, index) in prizes"
             :key="index"
@@ -279,12 +279,6 @@ export default defineComponent({
   computed: {
     isLoggedIn(): boolean {
       return useUserStore().token !== '';
-    },
-    gridStyle(): Record<string, string> {
-      const count = Math.ceil(Math.sqrt(this.prizes.length));
-      return {
-        gridTemplateColumns: `repeat(${count}, 1fr)`,
-      };
     },
     currentMeal(): string {
       const hour = new Date().getHours();
@@ -1320,20 +1314,26 @@ export default defineComponent({
 
 <style scoped>
 .lottery-container {
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .grid {
   width: 90vw;
-  max-width: 350px;
-  height: 350px; /* ✅ 明確高度 */
+  max-width: 650px;
+  min-height: 400px; /* ✅ 明確高度 */
+  max-height: 600px;
+  overflow-x: hidden;
   overflow-y: auto; /* ✅ 垂直捲動 */
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* ✅ 可調整 */
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   padding: 5px;
+  box-sizing: border-box;
 }
 
 .grid-item {
@@ -1342,6 +1342,7 @@ export default defineComponent({
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  min-height: 110px;
   background: #eee;
   border: 2px solid #ccc;
   font-size: 0.9rem;
