@@ -85,7 +85,9 @@ const onSearch = async () => {
   try {
     await fetchNearby();
   } finally {
-    isSearching.value = false;
+    setTimeout(() => {
+      isSearching.value = false;
+    }, 300);
   }
 };
 
@@ -120,6 +122,7 @@ const initMap = () => {
   });
 
   addUserLocationMarker();
+  drawSearchCircle();
 };
 
 // 清除舊標記
@@ -191,9 +194,6 @@ const addMarkers = (places: any[]) => {
 // 查詢附近店家
 const fetchNearby = async () => {
   if (!keyword.value.trim() || !map.value) return;
-  if (searchCircle.value) {
-    searchCircle.value.setMap(null);
-  }
   try {
     const bounds = map.value.getBounds();
     const center = map.value.getCenter();
@@ -229,13 +229,49 @@ const fetchNearby = async () => {
     const res = await api.get('/places/nearby-stores', { params });
     console.log('res', res);
     places.value = res.data.results;
+    for (const place of places.value) {
+      console.log(`[📷 圖片資訊] ${place.name} =>`, place.photoUrl || '❌ 無圖片');
+    }
     addMarkers(res.data.results);
   } catch (err) {
     console.error('🔴 API 錯誤:', err);
   }
 };
 
+const drawSearchCircle = () => {
+  if (!map.value) return;
+  if (searchCircle.value) {
+    searchCircle.value.setMap(null); // 清除舊的
+    searchCircle.value = null;
+  }
+
+  const bounds = map.value.getBounds();
+  const center = map.value.getCenter();
+  const ne = bounds?.getNorthEast();
+
+  if (!bounds || !center || !ne) {
+    console.warn('⚠️ 無法取得地圖視野資訊，略過畫圓');
+    return;
+  }
+
+  const radius = google.maps.geometry.spherical.computeDistanceBetween(center, ne);
+
+  searchCircle.value = new google.maps.Circle({
+    center: center.toJSON(),
+    radius,
+    map: map.value,
+    fillColor: '#4285F4',
+    fillOpacity: 0.2,
+    strokeColor: '#4285F4',
+    strokeOpacity: 0.6,
+    strokeWeight: 1,
+  });
+
+  console.log('✅ 已畫出搜尋圓圈');
+};
+
 onMounted(async () => {
+  if (hasSearched.value) return;
   const initialKeyword = route.query.keyword;
   if (typeof initialKeyword === 'string' && initialKeyword.trim()) {
     keyword.value = initialKeyword.trim();
