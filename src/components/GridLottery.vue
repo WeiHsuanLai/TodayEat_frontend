@@ -56,7 +56,8 @@
 
             <!-- ✅ 新增圖片顯示 -->
             <q-img
-              :src="item.imageUrl || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image'"
+              v-if="item.imageUrl"
+              :src="item.imageUrl"
               style="width: 90px; height: 90px; object-fit: cover"
             />
 
@@ -65,9 +66,8 @@
             <div v-if="item.selectedItem" class="sub-text">{{ item.selectedItem }}</div>
 
             <!-- 新增項目或刪除彈窗按鈕 -->
-            <div class="overlay-btn">
+            <div v-if="model === '料理國別'" class="overlay-btn">
               <q-btn
-                v-if="model === '料理國別'"
                 icon="add"
                 flat
                 round
