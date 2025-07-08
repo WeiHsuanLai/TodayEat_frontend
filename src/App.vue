@@ -25,7 +25,7 @@ onMounted(async () => {
   // 開啟時先做健康檢查康檢查
   const start = Date.now();
   try {
-    await api.get('/health');
+    await api.get(`/health?_=${Date.now()}`);
     const duration = Date.now() - start;
     if (duration > 4000) {
       Notify.create({
