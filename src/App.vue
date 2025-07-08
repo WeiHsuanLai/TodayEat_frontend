@@ -22,6 +22,28 @@ setupApiContext(
 );
 
 onMounted(async () => {
+  // 開啟時先做健康檢查康檢查
+  const start = Date.now();
+  try {
+    await api.get('/health');
+    const duration = Date.now() - start;
+    if (duration > 4000) {
+      Notify.create({
+        type: 'info',
+        message: '⚠️ 後端可能正在從休眠中喚醒，請稍候...',
+        timeout: 3000,
+      });
+    }
+  } catch {
+    $q.notify({
+      type: 'negative',
+      message: '⚠️ 無法連接伺服器，部分功能可能無法使用',
+    });
+    setTimeout(() => {
+      void router.replace('/not-found');
+    }, 300);
+  }
+
   // 還原本地 token
   await nextTick();
 
@@ -53,28 +75,6 @@ onMounted(async () => {
       }
       console.warn('驗證失敗', e);
     }
-  }
-
-  // 如果沒 token 或驗證失敗，再來做健康檢查
-  const start = Date.now();
-  try {
-    await api.get('/health');
-    const duration = Date.now() - start;
-    if (duration > 4000) {
-      Notify.create({
-        type: 'info',
-        message: '⚠️ 後端可能正在從休眠中喚醒，請稍候...',
-        timeout: 3000,
-      });
-    }
-  } catch {
-    $q.notify({
-      type: 'negative',
-      message: '⚠️ 無法連接伺服器，部分功能可能無法使用',
-    });
-    setTimeout(() => {
-      void router.replace('/not-found');
-    }, 300);
   }
 });
 </script>
