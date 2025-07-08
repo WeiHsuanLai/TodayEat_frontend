@@ -932,6 +932,7 @@ export default defineComponent({
               message: '✅ 已重置為預設料理清單',
               position: 'center',
             });
+            await this.loadPrizes();
           } catch (err) {
             Notify.create({
               type: 'negative',
@@ -1270,6 +1271,18 @@ export default defineComponent({
     },
     handleMapSearch() {
       const userStore = useUserStore();
+      if (!userStore.token) {
+        Dialog.create({
+          title: '請先登入',
+          message: '地圖搜尋功能僅限登入會員使用，請先登入帳號。',
+          ok: { label: '前往登入', color: 'primary' },
+          cancel: { label: '取消', color: 'grey' },
+        }).onOk(() => {
+          userStore.showLoginModal = true;
+        });
+        return;
+      }
+
       // 判斷目前是哪一餐
       const hour = new Date().getHours();
       let mealKey: 'breakfast' | 'lunch' | 'dinner' | 'midnight';
