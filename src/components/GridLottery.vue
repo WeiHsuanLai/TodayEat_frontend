@@ -381,7 +381,6 @@ export default defineComponent({
             return;
           }
 
-          const label = this.model;
           let apiEndpoint = '';
           console.log('⚠️ [進入前] 目前 model:', this.model);
           // localStorage 沒有 → 根據類型呼叫正確的 API
@@ -410,9 +409,6 @@ export default defineComponent({
               this.updateGuestPrizes();
             } else if (this.mealLabels.includes(this.model)) {
               console.log('[路徑] meal 類別 (未登入)');
-              apiEndpoint = '/mealPresets';
-              console.log('[未登入] model:', this.model, '| 使用 API:', apiEndpoint);
-              // 是 meal 類別 → 呼叫 /mealPresets
               const res = await api.get('/mealPresets');
               const allMeals = res.data ?? [];
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -424,6 +420,7 @@ export default defineComponent({
                   selectedItem: null,
                   fromLabel: label,
                 }));
+                this.updateGuestPrizes(); // ✅ 儲存快取
               } else {
                 this.prizes = [];
               }
@@ -483,14 +480,14 @@ export default defineComponent({
         const filterType = res.data?.filterType;
 
         if (filterType === 'meal') {
-          const label = res.data?.label ?? '未知時段';
+          const mealLabel = res.data?.label ?? '未知時段';
           const items = res.data?.items ?? [];
 
           this.prizes = items.map((item: string) => ({
-            label: item, // 顯示卡片時用
-            items: [item], // 保持結構一致
+            label: item,
+            items: [item],
             selectedItem: null,
-            fromLabel: label, // ✅ 用來記錄原始分類
+            fromLabel: mealLabel,
           }));
         } else {
           const raw = res.data?.customItems ?? {};
@@ -523,14 +520,13 @@ export default defineComponent({
         selectedItem: null,
         imageUrl: p.imageUrl || '',
       }));
-      localStorage.setItem(key, JSON.stringify(data));
 
-      // const msg = newItem ? `✅ 已儲存新料理：${newItem}` : `✅ 已更新 ${this.model} 分類資料`;
-      // Notify.create({
-      //   type: 'warning',
-      //   message: msg,
-      //   position: 'center',
-      // });
+      console.log('[updateGuestPrizes] 当前 model:', this.model);
+      console.log('[updateGuestPrizes] 寫入 key:', key);
+      console.log('[updateGuestPrizes] 寫入資料:', data);
+
+      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.setItem(`${key}:timestamp`, Date.now().toString());
       console.log(`[未登入] ✅ 更新 ${key}:`, data);
     },
 
