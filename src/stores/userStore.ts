@@ -158,7 +158,11 @@ export const useUserStore = defineStore('user', {
               .onOk(async () => {
                 try {
                   await api.post('/record/food-draw', { meal, food });
-
+                  this.foodDrawToday = {
+                    ...this.foodDrawToday,
+                    [meal]: food,
+                  };
+                  window.dispatchEvent(new CustomEvent('foodDrawOverwritten'));
                   Notify.create({
                     type: 'positive',
                     message: `🎉 已覆蓋推薦為：${food}`,

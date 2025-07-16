@@ -275,6 +275,7 @@ export default defineComponent({
     void this.loadPrizes().then(() => {
       void this.loadTodayDraw(); // 等載入完料理後再載入已抽紀錄
     });
+    window.addEventListener('foodDrawOverwritten', () => this.onFoodDrawOverwritten());
   },
   computed: {
     isLoggedIn(): boolean {
@@ -1311,12 +1312,20 @@ export default defineComponent({
         void this.$router.push({ name: 'MapSearch', query: { keyword } });
       });
     },
+    onFoodDrawOverwritten() {
+      void this.loadMealLabels();
+      // ✅ 僅在覆蓋推薦成功後重新載入資料
+      void this.loadPrizes().then(() => {
+        this.applyTodayDrawHighlight(); // ⬅ 若需要自動高亮目前推薦項目
+      });
+    },
     // 已經到 methods 底部了
   },
 
   // 清除計時器 this.timer
   beforeUnmount() {
     if (this.timer) clearTimeout(this.timer);
+    window.removeEventListener('foodDrawOverwritten', () => this.onFoodDrawOverwritten());
   },
 });
 </script>
