@@ -1072,7 +1072,7 @@ export default defineComponent({
       this.isAddingCategory = true;
       this.newCategoryLabel = '';
       this.newCategoryDialog = true;
-      this.newCategoryType = 'meal';
+      this.newCategoryType = fromModel === '料理國別' ? 'cuisine' : 'meal';
       this.newCategoryFromLabel = fromModel;
       this.newCategoryTitle = '新增料理類別';
     },
@@ -1227,13 +1227,14 @@ export default defineComponent({
     },
 
     handleAddNew() {
-      this.isAddingCategory = this.model === '料理國別'; // ✅ 決定是否可編輯分類
+      this.isAddingCategory = this.model === '料理國別';
       this.newCategoryFromLabel = this.model;
       this.newCategoryLabel = this.isAddingCategory ? '' : this.model;
       this.newCategoryItems = [];
       this.newCategoryNewItem = '';
       this.newCategoryDialog = true;
       this.newCategoryTitle = this.isAddingCategory ? '新增分類' : '新增料理';
+      this.newCategoryType = this.model === '料理國別' ? 'cuisine' : 'meal';
     },
     handleSelectChange(value: string) {
       this.model = value;
