@@ -13,12 +13,11 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                label="帳號"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : '帳號'"
                 outlined
                 dense
                 autofocus
                 :error="fieldMeta.touched && !!errorMessage"
-                :error-message="fieldMeta.touched ? errorMessage : ''"
               />
             </Field>
 
@@ -29,11 +28,10 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                label="密碼"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : '密碼'"
                 outlined
                 dense
                 :error="fieldMeta.touched && !!errorMessage"
-                :error-message="fieldMeta.touched ? errorMessage : ''"
               />
             </Field>
           </q-card-section>
@@ -61,11 +59,10 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                label="請填寫您的Email"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : '電子郵件'"
                 outlined
                 dense
                 :error="fieldMeta.touched && !!errorMessage"
-                :error-message="fieldMeta.touched ? errorMessage : ''"
               />
             </Field>
           </q-card-section>
