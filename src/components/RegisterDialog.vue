@@ -70,8 +70,8 @@
   </q-dialog>
 </template>
 
-<script lang="ts">
-import { computed, defineComponent } from 'vue';
+<script setup lang="ts">
+import { computed } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
@@ -86,80 +86,67 @@ interface RegisterForm {
   confirmPassword: string;
 }
 
-export default defineComponent({
-  components: {
-    VeeForm,
-    Field,
-  },
-  props: {
-    modelValue: {
-      type: Boolean,
-      required: true,
-    },
-  },
-  emits: ['update:modelValue', 'register'],
-  setup(props, { emit }) {
-    const { api } = useApi();
-    const userStore = useUserStore();
-    // const { setFieldError } = useForm<RegisterForm>();
+// 定義 props 和 emits
+const props = defineProps<{ modelValue: boolean }>();
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void;
+  (e: 'register', payload: RegisterForm): void;
+}>();
 
-    const show = computed({
-      get: () => props.modelValue,
-      set: (val: boolean) => emit('update:modelValue', val),
-    });
-    const syncShow = (val: boolean) => emit('update:modelValue', val);
+// API、Pinia
+const { api } = useApi();
+const userStore = useUserStore();
 
-    useForm<RegisterForm>();
+// VeeValidate
+useForm<RegisterForm>();
 
-    const schema = yup.object({
-      account: yup.string().required('請輸入帳號'),
-      email: yup.string().email('請輸入有效的電子郵件').required('請輸入電子郵件'),
-      password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
-      confirmPassword: yup
-        .string()
-        .oneOf([yup.ref('password')], '密碼不一致')
-        .required('請再次輸入密碼'),
-    });
-
-    const onSubmit = async (values: Record<string, unknown>) => {
-      const form = values as unknown as RegisterForm;
-
-      try {
-        const res = await api.post('/user/register', {
-          account: form.account,
-          email: form.email,
-          password: form.password,
-        });
-        console.log(res.data);
-        const { token, user } = res.data;
-        userStore.login(res.data.user.account, token, user.role, user.avatar);
-
-        Notify.create({
-          type: 'positive',
-          message: '註冊成功！歡迎加入 🍉',
-          position: 'center',
-          timeout: 1500,
-        });
-
-        emit('register', form);
-        syncShow(false);
-      } catch (err) {
-        const error = err as AxiosError;
-        console.error('❌ axios error:', {
-          message: error.message,
-          code: error.code,
-          isAxiosError: error.isAxiosError,
-          request: error.request,
-          response: error.response,
-        });
-      }
-    };
-
-    return {
-      show,
-      schema,
-      onSubmit,
-    };
-  },
+// Dialog 開關綁定
+const show = computed({
+  get: () => props.modelValue,
+  set: (val: boolean) => emit('update:modelValue', val),
 });
+
+const schema = yup.object({
+  account: yup.string().required('請輸入帳號'),
+  email: yup.string().email('請輸入有效的電子郵件').required('請輸入電子郵件'),
+  password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref('password')], '密碼不一致')
+    .required('請再次輸入密碼'),
+});
+
+const onSubmit = async (values: Record<string, unknown>) => {
+  const form = values as unknown as RegisterForm;
+
+  try {
+    const res = await api.post('/user/register', {
+      account: form.account,
+      email: form.email,
+      password: form.password,
+    });
+
+    const { token, user } = res.data;
+    userStore.login(user.account, token, user.role, user.avatar);
+
+    Notify.create({
+      type: 'positive',
+      message: '註冊成功！歡迎加入 🍉',
+      position: 'center',
+      timeout: 1500,
+    });
+
+    emit('register', form);
+    emit('update:modelValue', false);
+  } catch (err) {
+    const error = err as AxiosError;
+    console.error('❌ axios error:', {
+      message: error.message,
+      code: error.code,
+      isAxiosError: error.isAxiosError,
+      request: error.request,
+      response: error.response,
+    });
+  }
+};
 </script>
