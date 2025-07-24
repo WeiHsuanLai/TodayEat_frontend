@@ -3,24 +3,24 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <!-- 網頁版導覽列 -->
-      <q-toolbar class="custom-toolbar relative-position q-px-md">
+      <q-toolbar class="custom-toolbar q-px-md relative-position">
         <!-- 左邊 -->
         <!-- 左側導覽列 -->
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <div class="row items-center">
+          <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        </div>
 
         <!-- 中間 -->
         <!-- 首頁標題 -->
         <div
-          class="absolute full-height flex items-center justify-center text-h6 text-weight-bold text-white xs-hide"
-          style="left: 50%; transform: translateX(-50%); cursor: pointer"
+          class="absolute-center text-h6 text-weight-bold text-white cursor-pointer xs-hide"
           @click="goHome()"
         >
           🍉{{ t('appTitle') }}🍖
         </div>
 
         <!-- 右邊 -->
-
-        <div class="flex row items-center full-height q-gutter-sm q-ml-auto">
+        <div class="row items-center q-gutter-sm q-ml-auto">
           <!-- 登入彈窗按鈕 -->
           <!-- 未登入顯示登入與註冊按鈕 -->
           <q-btn
@@ -274,5 +274,9 @@ const langButtonText = computed(() => (locale.value === 'zh-TW' ? '中文' : 'EN
 .menu-margin {
   margin: 20px 0 10px 0;
   width: 200px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 </style>
