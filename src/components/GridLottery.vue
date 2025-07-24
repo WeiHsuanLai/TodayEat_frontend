@@ -1,7 +1,7 @@
 <!-- src/components/GridLottery.vue -->
 <template>
   <div>
-    <h1>維修中</h1>
+    <h3>維修中</h3>
   </div>
 </template>
 
