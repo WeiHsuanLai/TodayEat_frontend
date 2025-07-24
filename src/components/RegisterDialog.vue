@@ -9,20 +9,19 @@
         <q-card-section>
           <Field name="account" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              label="帳號"
+              :label="m.touched && errorMessage ? errorMessage : '帳號'"
               outlined
               dense
               :model-value="field.value"
               @update:model-value="field.onChange"
               @blur="field.onBlur"
               :error="m.touched && !!errorMessage"
-              :error-message="m.touched ? errorMessage : ''"
             />
           </Field>
 
           <Field name="email" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              label="電子郵件"
+              :label="m.touched && errorMessage ? errorMessage : '電子郵件'"
               outlined
               dense
               type="email"
@@ -30,13 +29,12 @@
               @update:model-value="field.onChange"
               @blur="field.onBlur"
               :error="m.touched && !!errorMessage"
-              :error-message="m.touched ? errorMessage : ''"
             />
           </Field>
 
           <Field name="password" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              label="密碼"
+              :label="m.touched && errorMessage ? errorMessage : '密碼'"
               outlined
               dense
               type="password"
@@ -50,7 +48,7 @@
 
           <Field name="confirmPassword" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              label="確認密碼"
+              :label="m.touched && errorMessage ? errorMessage : '確認密碼'"
               outlined
               dense
               type="password"
