@@ -82,10 +82,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
-import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
 import { defineEmits } from 'vue';
+import z from 'zod';
+import { toTypedSchema } from '@vee-validate/zod';
 
 // props & emits
 const props = defineProps<{
@@ -128,17 +129,56 @@ watch(
   },
 );
 
-// schema 定義
-const schema = computed(() =>
+// 使用 Zod 定義驗證規則
+const isAccountRequired = computed(() => !isResetMode.value);
+const isPasswordRequired = computed(() => !isResetMode.value);
+const isEmailValid = computed(() =>
   isResetMode.value
-    ? yup.object({
-        email: yup.string().email('請輸入有效 Email').required('請填寫 Email'),
-      })
-    : yup.object({
-        account: yup.string().required('請輸入帳號'),
-        password: yup.string().min(4, '密碼至少 4 碼').required('請輸入密碼'),
-      }),
+    ? z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件')
+    : z.string(),
 );
+const isAccountValid = computed(() =>
+  isAccountRequired.value
+    ? z
+        .string({ required_error: '請輸入帳號' })
+        .nonempty('請輸入帳號')
+        .min(4, { message: '帳號至少 4 碼' })
+    : z.string(),
+);
+const isPasswordValid = computed(() =>
+  isPasswordRequired.value
+    ? z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' })
+    : z.string(),
+);
+
+const schema = computed(() =>
+  toTypedSchema(
+    isResetMode.value
+      ? z.object({
+          email: isEmailValid.value,
+        })
+      : z.object({
+          account: isAccountValid.value,
+          password: isPasswordValid.value,
+        }),
+  ),
+);
+// 定義驗證規則
+// const schema = computed(() =>
+//   toTypedSchema(
+//     isResetMode.value
+//       ? z.object({
+//           email: z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件'),
+//         })
+//       : z.object({
+//           account: z
+//             .string({ required_error: '請輸入帳號' })
+//             .nonempty('請輸入帳號')
+//             .min(4, { message: '帳號至少 4 碼' }),
+//           password: z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' }),
+//         }),
+//   ),
+// );
 
 // 提交處理
 const onSubmit = async (values: Record<string, unknown>) => {
