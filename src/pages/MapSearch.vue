@@ -287,8 +287,11 @@ onMounted(async () => {
     await loader.importLibrary('maps');
 
     // 載入 marker 與 places library（模組式）
-    await Promise.all([loader.importLibrary('marker'), loader.importLibrary('places')]);
-    await loader.importLibrary('geometry');
+    await Promise.all([
+      loader.importLibrary('marker'),
+      loader.importLibrary('places'),
+      loader.importLibrary('geometry'),
+    ]);
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -301,8 +304,6 @@ onMounted(async () => {
         void initMap();
       },
     );
-
-    await loader.importLibrary('geometry');
   } catch (err) {
     console.error('Google Maps 載入失敗:', err);
   }
