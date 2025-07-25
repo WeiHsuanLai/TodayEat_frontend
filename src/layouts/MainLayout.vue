@@ -45,9 +45,9 @@
           <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm" color="blue-2">
             <img :src="userStore.avatar" />
           </q-avatar>
-          <q-avatar v-else color="secondary">
+          <!-- <q-avatar v-else color="secondary">
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-          </q-avatar>
+          </q-avatar> -->
 
           <!-- 登入後顯示下拉選單 -->
           <q-btn
