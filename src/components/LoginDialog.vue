@@ -85,7 +85,7 @@ import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
-import { defineProps, defineEmits } from 'vue';
+import { defineEmits } from 'vue';
 
 // props & emits
 const props = defineProps<{
