@@ -44,6 +44,21 @@
               <q-btn type="submit" label="登入" color="primary" :disable="!meta.valid" />
             </div>
           </q-card-actions>
+          <div class="row q-gutter-x-sm">
+            <q-btn
+              class="full-width q-mt-sm"
+              color="white"
+              text-color="black"
+              @click="triggerGooglePrompt"
+            >
+              <template #default>
+                <q-avatar class="q-mr-sm">
+                  <img src="https://developers.google.com/identity/images/g-logo.png" />
+                </q-avatar>
+                使用 Google 登入
+              </template>
+            </q-btn>
+          </div>
         </VeeForm>
       </template>
       <template v-else>
@@ -80,13 +95,126 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
 import { defineEmits } from 'vue';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
+
+// Google 登入相關設定
+const GOOGLE_CLIENT_ID = '14982398097-cti2fv3589qi59hfgdnu1mfrauvpnt9k.apps.googleusercontent.com';
+
+function loadGoogleScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById('google-sdk')) {
+      resolve(); // 已載入
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.id = 'google-sdk';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Google SDK 載入失敗'));
+    document.head.appendChild(script);
+  });
+}
+
+let isPrompting = false;
+// 啟動 Google One Tap 登入提示
+function triggerGooglePrompt() {
+  console.log('🟡 triggerGooglePrompt 被點擊');
+  if (isPrompting) return; // 防止重複觸發
+  isPrompting = true;
+  console.log('啟動 Google One Tap 登入提示...');
+
+  if (!window.google?.accounts?.id) {
+    Notify.create({ type: 'warning', message: 'Google 登入尚未初始化' });
+    isPrompting = false;
+    return;
+  }
+
+  setTimeout(() => {
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isDisplayMoment()) {
+        console.log('🟢 One Tap 顯示');
+      } else if (notification.isNotDisplayed()) {
+        const reason = notification.getNotDisplayedReason?.();
+        console.warn('⚠️ One Tap 未顯示，原因:', reason);
+      } else if (notification.isSkippedMoment()) {
+        const reason = notification.getSkippedReason?.();
+        console.warn('⚠️ One Tap 被跳過，原因:', reason);
+        if (reason === 'unknown_reason') {
+          Notify.create({
+            type: 'warning',
+            message: 'Google 登入被跳過，請稍後再試或檢查網路',
+          });
+        }
+      } else if (notification.isDismissedMoment()) {
+        const reason = notification.getDismissedReason?.();
+        console.warn('❌ One Tap 被關閉，原因:', reason);
+      } else {
+        console.warn('❓ 未知 prompt 情況', notification);
+      }
+    });
+  }, 2000); // 延遲 1 秒以確保 SDK 已載入
+}
+
+function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
+  if (!response || !response.credential) {
+    Notify.create({ type: 'negative', message: 'Google 登入失敗，請稍後再試' });
+    return;
+  }
+  const credential = response.credential;
+  console.log('✅ Google JWT Token:', credential);
+
+  // 傳到後端驗證
+  api
+    .post('/user/googleLogin', { token: credential })
+    .then((res) => {
+      Notify.create({ type: 'positive', message: 'Google 登入成功' });
+      emit('login', {
+        username: res.data.user.account,
+        token: res.data.token,
+        role: res.data.user.role,
+        avatar: res.data.user.avatar,
+      });
+      show.value = false;
+    })
+    .catch((err) => {
+      Notify.create({ type: 'negative', message: 'Google 登入失敗' });
+      console.error(err);
+    });
+}
+
+onMounted(async () => {
+  await loadGoogleScript();
+
+  if (window.google) {
+    console.log('啟動google驗證');
+    if (window.google?.accounts?.id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any)._gsiInited) return;
+      console.log('✅ Google API 已載入');
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleLogin,
+        auto_select: false,
+        cancel_on_tap_outside: false,
+        context: 'signin',
+        // use_fedcm_for_prompt: true,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any)._gsiInited = true;
+    } else {
+      console.warn('❌ Google API 未正確載入');
+    }
+  }
+});
 
 // props & emits
 const props = defineProps<{
@@ -107,7 +235,7 @@ interface LoginForm {
 }
 
 // form context
-useForm<LoginForm>();
+useForm();
 
 // 顯示狀態雙向綁定
 const show = computed({
@@ -163,22 +291,6 @@ const schema = computed(() =>
         }),
   ),
 );
-// 定義驗證規則
-// const schema = computed(() =>
-//   toTypedSchema(
-//     isResetMode.value
-//       ? z.object({
-//           email: z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件'),
-//         })
-//       : z.object({
-//           account: z
-//             .string({ required_error: '請輸入帳號' })
-//             .nonempty('請輸入帳號')
-//             .min(4, { message: '帳號至少 4 碼' }),
-//           password: z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' }),
-//         }),
-//   ),
-// );
 
 // 提交處理
 const onSubmit = async (values: Record<string, unknown>) => {

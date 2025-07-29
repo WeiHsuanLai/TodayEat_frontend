@@ -55,6 +55,13 @@ export const useUserStore = defineStore('user', {
         console.warn('登出失敗:', err);
       }
 
+      // 清除 Google One Tap 快速登入記憶
+      if (window.google?.accounts?.id) {
+        window.google?.accounts?.id?.disableAutoSelect?.();
+        console.log('已清除 Google One Tap 快速登入記憶');
+
+      }
+
       // 無論如何都要清掉本地狀態
       this.isLoggedIn = false;
       this.username = '';
