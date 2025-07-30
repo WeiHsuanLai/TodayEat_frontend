@@ -12,6 +12,7 @@
               :label="m.touched && errorMessage ? errorMessage : '帳號'"
               outlined
               dense
+              autofocus
               :model-value="field.value"
               @update:model-value="field.onChange"
               @blur="field.onBlur"

@@ -1,11 +1,11 @@
 <template>
   <q-dialog v-model="show" persistent>
-    <q-card style="min-width: 350px">
+    <q-card style="min-width: 350px; min-height: 360px">
       <template v-if="!isResetMode">
         <q-card-section>
           <div class="text-h6">登入</div>
         </q-card-section>
-        <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
+        <VeeForm :validation-schema="schema" :onSubmit="onSubmit">
           <q-card-section>
             <Field name="account" v-slot="{ field, errorMessage, meta: fieldMeta }">
               <q-input
@@ -16,7 +16,6 @@
                 :label="fieldMeta.touched && errorMessage ? errorMessage : '帳號'"
                 outlined
                 dense
-                autofocus
                 :error="fieldMeta.touched && !!errorMessage"
               />
             </Field>
@@ -41,24 +40,10 @@
             </q-btn>
             <div class="row q-gutter-x-sm">
               <q-btn flat label="取消" color="primary" @click="show = false" />
-              <q-btn type="submit" label="登入" color="primary" :disable="!meta.valid" />
+              <q-btn type="submit" label="登入" color="primary" />
             </div>
           </q-card-actions>
-          <div class="row q-gutter-x-sm">
-            <q-btn
-              class="full-width q-mt-sm"
-              color="white"
-              text-color="black"
-              @click="triggerGooglePrompt"
-            >
-              <template #default>
-                <q-avatar class="q-mr-sm">
-                  <img src="https://developers.google.com/identity/images/g-logo.png" />
-                </q-avatar>
-                使用 Google 登入
-              </template>
-            </q-btn>
-          </div>
+          <div id="google-login-button" class="q-mt-sm full-width flex flex-center" />
         </VeeForm>
       </template>
       <template v-else>
@@ -96,12 +81,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { Form as VeeForm, Field, useForm } from 'vee-validate';
+import { Form as VeeForm, Field } from 'vee-validate';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
 import { defineEmits } from 'vue';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
+import { nextTick } from 'vue';
 
 // Google 登入相關設定
 const GOOGLE_CLIENT_ID = '14982398097-cti2fv3589qi59hfgdnu1mfrauvpnt9k.apps.googleusercontent.com';
@@ -122,46 +108,6 @@ function loadGoogleScript(): Promise<void> {
     script.onerror = () => reject(new Error('Google SDK 載入失敗'));
     document.head.appendChild(script);
   });
-}
-
-let isPrompting = false;
-// 啟動 Google One Tap 登入提示
-function triggerGooglePrompt() {
-  console.log('🟡 triggerGooglePrompt 被點擊');
-  if (isPrompting) return; // 防止重複觸發
-  isPrompting = true;
-  console.log('啟動 Google One Tap 登入提示...');
-
-  if (!window.google?.accounts?.id) {
-    Notify.create({ type: 'warning', message: 'Google 登入尚未初始化' });
-    isPrompting = false;
-    return;
-  }
-
-  setTimeout(() => {
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isDisplayMoment()) {
-        console.log('🟢 One Tap 顯示');
-      } else if (notification.isNotDisplayed()) {
-        const reason = notification.getNotDisplayedReason?.();
-        console.warn('⚠️ One Tap 未顯示，原因:', reason);
-      } else if (notification.isSkippedMoment()) {
-        const reason = notification.getSkippedReason?.();
-        console.warn('⚠️ One Tap 被跳過，原因:', reason);
-        if (reason === 'unknown_reason') {
-          Notify.create({
-            type: 'warning',
-            message: 'Google 登入被跳過，請稍後再試或檢查網路',
-          });
-        }
-      } else if (notification.isDismissedMoment()) {
-        const reason = notification.getDismissedReason?.();
-        console.warn('❌ One Tap 被關閉，原因:', reason);
-      } else {
-        console.warn('❓ 未知 prompt 情況', notification);
-      }
-    });
-  }, 2000); // 延遲 1 秒以確保 SDK 已載入
 }
 
 function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
@@ -193,26 +139,31 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
 
 onMounted(async () => {
   await loadGoogleScript();
+  if (window.google?.accounts?.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any)._gsiInited) return;
 
-  if (window.google) {
-    console.log('啟動google驗證');
-    if (window.google?.accounts?.id) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any)._gsiInited) return;
-      console.log('✅ Google API 已載入');
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleLogin,
-        auto_select: false,
-        cancel_on_tap_outside: false,
-        context: 'signin',
-        // use_fedcm_for_prompt: true,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any)._gsiInited = true;
-    } else {
-      console.warn('❌ Google API 未正確載入');
-    }
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleLogin,
+      auto_select: false,
+      cancel_on_tap_outside: false,
+      context: 'signin',
+    });
+
+    // ✅ 使用 Popup Flow: 渲染 Google 登入按鈕
+    window.google.accounts.id.renderButton(document.getElementById('google-login-button')!, {
+      theme: 'outline',
+      size: 'large',
+      width: '100%',
+      text: 'signin_with',
+      shape: 'rectangular',
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any)._gsiInited = true;
+  } else {
+    console.warn('❌ Google API 未正確載入');
   }
 });
 
@@ -234,9 +185,6 @@ interface LoginForm {
   password: string;
 }
 
-// form context
-useForm();
-
 // 顯示狀態雙向綁定
 const show = computed({
   get: () => props.modelValue,
@@ -252,8 +200,28 @@ const toggleResetMode = () => {
 // 顯示對話框時重置為登入模式
 watch(
   () => props.modelValue,
-  (val) => {
-    if (val) isResetMode.value = false;
+  async (val) => {
+    if (val) {
+      isResetMode.value = false;
+
+      // 如果 Google One Tap 可用，渲染按鈕
+      if (window.google?.accounts?.id) {
+        await nextTick();
+        const el = document.getElementById('google-login-button');
+        if (!el) return;
+
+        // 清空內部內容，避免重複 render 堆疊
+        el.innerHTML = '';
+
+        window.google.accounts.id.renderButton(el, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'signin_with',
+          shape: 'rectangular',
+        });
+      }
+    }
   },
 );
 

@@ -20,11 +20,11 @@ declare global {
         momentType?: MomentType;
         isDisplayMoment(): boolean;
         isNotDisplayed(): boolean;
-        getNotDisplayedReason(): string; // 'browser_not_supported', etc.
+        getNotDisplayedReason(): string;
         isSkippedMoment(): boolean;
-        getSkippedReason(): string; // 'user_not_signed_in', etc.
+        getSkippedReason(): string;
         isDismissedMoment(): boolean;
-        getDismissedReason(): string; // 'credential_returned', etc.
+        getDismissedReason(): string;
       }
 
       function initialize(config: {
@@ -33,7 +33,7 @@ declare global {
         auto_select?: boolean;
         cancel_on_tap_outside?: boolean;
         prompt_parent_id?: string;
-        context?: "signin" | "signup" | "use";
+        context?: 'signin' | 'signup' | 'use';
         use_fedcm_for_prompt?: boolean;
       }): void;
 
@@ -42,6 +42,18 @@ declare global {
       function disableAutoSelect(): void;
 
       function revoke(email: string, done?: () => void): void;
+
+      function renderButton(
+        parent: HTMLElement,
+        options: {
+          theme: 'outline' | 'filled_blue' | 'filled_black';
+          size: 'small' | 'medium' | 'large';
+          width?: string | number;
+          text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+          shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+          logo_alignment?: 'left' | 'center';
+        }
+      ): void;
     }
   }
 }
