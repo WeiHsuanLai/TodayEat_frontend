@@ -190,13 +190,18 @@ const onSubmit = async (values: Record<string, unknown>) => {
     emit('update:modelValue', false);
   } catch (err) {
     const error = err as AxiosError;
-    console.error('❌ axios error:', {
-      message: error.message,
-      code: error.code,
-      isAxiosError: error.isAxiosError,
-      request: error.request,
-      response: error.response,
-    });
+    const data = error?.response?.data as { message?: string; errors?: { msg: string }[] };
+    if (data?.errors?.length) {
+      data.errors.forEach((e) =>
+        Notify.create({ type: 'negative', message: e.msg, position: 'top' }),
+      );
+    } else {
+      Notify.create({
+        type: 'negative',
+        message: data?.message || '註冊失敗',
+        position: 'center',
+      });
+    }
   }
 };
 </script>
