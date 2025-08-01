@@ -15,7 +15,7 @@
         v-for="(item, index) in gridDisplay"
         :key="index"
         class="grid-item"
-        :class="{ active: index === currentIndex }"
+        :class="{ active: index === currentIndex && item !== null }"
       >
         {{ item }}
       </div>
@@ -83,9 +83,13 @@ function startDraw(): void {
   isDrawing.value = true;
   let count = 0;
   const totalSteps = 30 + Math.floor(Math.random() * 10);
+  const positions = computed(() => {
+    return prizes.value.map((_, i) => i); // 只保留有獎項的 index
+  });
 
   const interval = setInterval(() => {
-    currentIndex.value = positions[count % positions.length]!;
+    const validPositions = positions.value;
+    currentIndex.value = validPositions[count % validPositions.length]!;
     count++;
 
     if (count > totalSteps) {
