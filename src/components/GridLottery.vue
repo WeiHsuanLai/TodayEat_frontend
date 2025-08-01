@@ -105,10 +105,13 @@ function startDraw(): void {
   grid-template-columns: repeat(3, 100px);
   grid-template-rows: repeat(3, 100px);
   gap: 8px;
+  padding: 10px;
   justify-content: center;
   align-items: center;
 }
 .grid-item {
+  width: 100%;
+  height: 100%;
   border: 2px solid #ccc;
   border-radius: 8px;
   display: flex;
