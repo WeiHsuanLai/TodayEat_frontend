@@ -33,6 +33,35 @@
                 :error="fieldMeta.touched && !!errorMessage"
               />
             </Field>
+            <Field name="captcha" v-slot="{ field, errorMessage, meta: fieldMeta }">
+              <div class="row items-center q-gutter-sm">
+                <q-input
+                  v-model="captchaInputValue"
+                  @update:model-value="field.onChange"
+                  @blur="field.onBlur"
+                  :name="field.name"
+                  :label="fieldMeta.touched && errorMessage ? errorMessage : '驗證碼'"
+                  outlined
+                  dense
+                  :error="fieldMeta.touched && !!errorMessage"
+                  style="flex: 1"
+                />
+                <img
+                  :src="captchaUrl"
+                  crossorigin="use-credentials"
+                  @click="refreshCaptcha"
+                  style="
+                    cursor: pointer;
+                    height: 40px;
+                    width: 100px;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    display: block;
+                  "
+                  alt="驗證碼圖片"
+                />
+              </div>
+            </Field>
           </q-card-section>
           <q-card-actions align="between" class="q-px-md">
             <q-btn flat color="primary" @click="toggleResetMode">
@@ -81,13 +110,21 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
-import { Form as VeeForm, Field } from 'vee-validate';
+import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
 import { defineEmits } from 'vue';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
 import { nextTick } from 'vue';
+const form = useForm();
+form.resetForm({
+  values: {
+    account: '',
+    password: '',
+    captcha: '',
+  },
+});
 
 // Google 登入相關設定
 const GOOGLE_CLIENT_ID = '14982398097-cti2fv3589qi59hfgdnu1mfrauvpnt9k.apps.googleusercontent.com';
@@ -179,6 +216,12 @@ const emit = defineEmits<{
 // api
 const { api } = useApi();
 
+const captchaUrl = ref(import.meta.env.VITE_API + 'auth/captcha?t=' + Date.now());
+
+const refreshCaptcha = () => {
+  captchaUrl.value = import.meta.env.VITE_API + 'auth/captcha?t=' + Date.now();
+};
+
 // 表單型別
 interface LoginForm {
   account: string;
@@ -216,7 +259,7 @@ watch(
         window.google.accounts.id.renderButton(el, {
           theme: 'outline',
           size: 'large',
-          width: '100%',
+          width: '300px',
           text: 'signin_with',
           shape: 'rectangular',
         });
@@ -224,6 +267,11 @@ watch(
     }
   },
 );
+
+const captchaInputValue = ref('');
+watch(captchaInputValue, (val) => {
+  form.setFieldValue('captcha', val);
+});
 
 // 使用 Zod 定義驗證規則
 const isAccountRequired = computed(() => !isResetMode.value);
@@ -233,6 +281,8 @@ const isEmailValid = computed(() =>
     ? z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件')
     : z.string(),
 );
+
+// 帳號驗證規則
 const isAccountValid = computed(() =>
   isAccountRequired.value
     ? z
@@ -241,10 +291,17 @@ const isAccountValid = computed(() =>
         .min(4, { message: '帳號至少 4 碼' })
     : z.string(),
 );
+
+// 密碼驗證規則
 const isPasswordValid = computed(() =>
   isPasswordRequired.value
     ? z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' })
     : z.string(),
+);
+
+// 驗證碼驗證規則
+const isCaptchaRequired = computed(() =>
+  z.string({ required_error: '請輸入驗證碼' }).nonempty('請輸入驗證碼'),
 );
 
 const schema = computed(() =>
@@ -256,6 +313,7 @@ const schema = computed(() =>
       : z.object({
           account: isAccountValid.value,
           password: isPasswordValid.value,
+          captcha: isCaptchaRequired.value,
         }),
   ),
 );
@@ -301,6 +359,13 @@ const onSubmit = async (values: Record<string, unknown>) => {
       (err as { response?: { data?: { message?: string } } }).response?.data?.message
     ) {
       const message = (err as { response: { data: { message: string } } }).response.data.message;
+
+      // 如果是驗證碼錯誤，重新載入驗證碼
+      if (message.includes('驗證碼錯誤') || message.includes('captcha')) {
+        refreshCaptcha();
+        captchaInputValue.value = '';
+        console.log('🔄 驗證碼錯誤，重新載入驗證碼', captchaInputValue.value);
+      }
       Notify.create({
         type: 'negative',
         message,

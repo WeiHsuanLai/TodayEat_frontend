@@ -11,6 +11,7 @@ let isHandling401 = false; // 防止多次觸發 logout
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API,
+  withCredentials: true,
 });
 
 // 🔐 自動附上 Authorization Header（如果存在 token）
