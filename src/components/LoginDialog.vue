@@ -1,6 +1,6 @@
 <template>
   <q-dialog v-model="show" persistent>
-    <q-card style="min-width: 350px; min-height: 360px">
+    <q-card style="min-width: 380px; min-height: 200px; max-height: 90vh; overflow: hidden">
       <template v-if="!isResetMode">
         <q-card-section>
           <div class="text-h6">登入</div>
@@ -34,8 +34,9 @@
               />
             </Field>
             <Field name="captcha" v-slot="{ field, errorMessage, meta: fieldMeta }">
-              <div class="row items-center q-gutter-sm">
+              <div class="flex items-center" style="flex: 1">
                 <q-input
+                  class="full-width"
                   v-model="captchaInputValue"
                   @update:model-value="field.onChange"
                   @blur="field.onBlur"
@@ -44,7 +45,6 @@
                   outlined
                   dense
                   :error="fieldMeta.touched && !!errorMessage"
-                  style="flex: 1"
                 />
                 <img
                   :src="captchaUrl"
@@ -60,6 +60,16 @@
                   "
                   alt="驗證碼圖片"
                 />
+                <q-btn
+                  dense
+                  flat
+                  color="primary"
+                  icon="refresh"
+                  size="lg"
+                  @click="refreshCaptcha"
+                  aria-label="刷新驗證碼"
+                  class="q-mt-xs"
+                />
               </div>
             </Field>
           </q-card-section>
@@ -72,7 +82,11 @@
               <q-btn type="submit" label="登入" color="primary" />
             </div>
           </q-card-actions>
-          <div id="google-login-button" class="q-mt-sm full-width flex flex-center" />
+          <div
+            id="google-login-button"
+            class="q-pa-none full-width flex flex-center"
+            style="min-height: 80px; width: 300px"
+          />
         </VeeForm>
       </template>
       <template v-else>
@@ -241,32 +255,22 @@ const toggleResetMode = () => {
 };
 
 // 顯示對話框時重置為登入模式
-watch(
-  () => props.modelValue,
-  async (val) => {
-    if (val) {
-      isResetMode.value = false;
-
-      // 如果 Google One Tap 可用，渲染按鈕
-      if (window.google?.accounts?.id) {
-        await nextTick();
-        const el = document.getElementById('google-login-button');
-        if (!el) return;
-
-        // 清空內部內容，避免重複 render 堆疊
-        el.innerHTML = '';
-
-        window.google.accounts.id.renderButton(el, {
-          theme: 'outline',
-          size: 'large',
-          width: '300px',
-          text: 'signin_with',
-          shape: 'rectangular',
-        });
-      }
+watch([() => props.modelValue, isResetMode], async ([dialogVal, resetVal]) => {
+  if (dialogVal && !resetVal) {
+    await nextTick();
+    const el = document.getElementById('google-login-button');
+    if (el && window.google?.accounts?.id) {
+      el.innerHTML = '';
+      window.google.accounts.id.renderButton(el, {
+        theme: 'outline',
+        size: 'large',
+        width: '300px',
+        text: 'signin_with',
+        shape: 'rectangular',
+      });
     }
-  },
-);
+  }
+});
 
 const captchaInputValue = ref('');
 watch(captchaInputValue, (val) => {
