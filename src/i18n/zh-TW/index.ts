@@ -12,4 +12,10 @@ export default {
   // 左側導覽列
   home: '首頁',
   aboutus: '關於我們!',
+  loginHistory: '登入紀錄',
+  foodDrawHistory: '抽取歷史',
+  userSettings: '會員設定',
+  mapSearch: '地圖搜尋',
+  adminPage: '管理員頁面',
+  noData: '暫無資料',
 };

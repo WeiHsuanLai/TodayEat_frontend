@@ -79,15 +79,22 @@
                 <q-btn
                   flat
                   color="dark"
-                  :label="'會員設定'"
+                  :label="t('userSettings')"
                   to="/setting"
                   class="full-width justify-start q-px-md"
                 />
                 <q-btn
                   flat
                   color="dark"
-                  :label="'抽取歷史'"
+                  :label="t('foodDrawHistory')"
                   to="/FoodDrawHistory"
+                  class="full-width justify-start q-px-md"
+                />
+                <q-btn
+                  flat
+                  color="dark"
+                  :label="t('loginHistory')"
+                  to="/LoginHistory"
                   class="full-width justify-start q-px-md"
                 />
                 <q-btn
@@ -140,13 +147,16 @@
           <q-item-section> {{ t('aboutus') }} </q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/setting">
-          <q-item-section> 會員設定 </q-item-section>
+          <q-item-section> {{ t('userSettings') }} </q-item-section>
+        </q-item>
+        <q-item clickable v-ripple to="/LoginHistory">
+          <q-item-section> {{ t('loginHistory') }} </q-item-section>
         </q-item>
         <q-item clickable v-ripple to="/mapsearch">
-          <q-item-section> 地圖搜尋 </q-item-section>
+          <q-item-section> {{ t('mapSearch') }} </q-item-section>
         </q-item>
         <q-item v-if="userStore.role === 1" clickable v-ripple to="/admin">
-          <q-item-section> 管理員頁面 </q-item-section>
+          <q-item-section> {{ t('adminPage') }} </q-item-section>
         </q-item>
       </q-list>
     </q-drawer>

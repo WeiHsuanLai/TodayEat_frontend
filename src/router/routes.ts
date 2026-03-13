@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/FoodDrawHistory.vue'),
         meta: { requiresAuth: true },
       },
+      {
+        path: 'LoginHistory',
+        component: () => import('pages/LoginHistory.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
   {

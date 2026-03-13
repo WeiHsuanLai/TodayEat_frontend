@@ -12,4 +12,10 @@ export default {
   // 左側導覽列
   home: 'Home',
   aboutus: 'About us!',
+  loginHistory: 'Login History',
+  foodDrawHistory: 'History',
+  userSettings: 'Settings',
+  mapSearch: 'Map Search',
+  adminPage: 'Admin Page',
+  noData: 'No data available',
 };
