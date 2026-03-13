@@ -74,13 +74,12 @@ import { ref, computed } from 'vue';
 import { Form as VeeForm, Field } from 'vee-validate';
 import { z } from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
-import { useApi } from 'src/composables/axios';
+import { userApi } from 'src/api';
 import { Notify } from 'quasar';
 import { useI18n } from 'vue-i18n';
 import type { AxiosError } from 'axios';
 
 const { t } = useI18n();
-const { api } = useApi();
 const loading = ref(false);
 
 const schema = computed(() =>
@@ -102,7 +101,7 @@ const schema = computed(() =>
 const onSubmit = async (values: any, { resetForm }: any) => {
   loading.value = true;
   try {
-    await api.post('/user/change-password', {
+    await userApi.changePassword({
       currentPassword: values.currentPassword,
       newPassword: values.newPassword,
     });

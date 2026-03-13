@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
-import { useApi } from 'src/composables/axios';
+import { userApi } from 'src/api';
 import { useUserStore } from 'src/stores/userStore';
 import type { AxiosError } from 'axios';
 import { Notify } from 'quasar';
@@ -94,7 +94,6 @@ const emit = defineEmits<{
 }>();
 
 // API、Pinia
-const { api } = useApi();
 const userStore = useUserStore();
 
 // VeeValidate
@@ -187,14 +186,14 @@ const onSubmit = async (values: Record<string, unknown>) => {
   const registerData = values as unknown as RegisterForm;
 
   try {
-    const res = await api.post('/user/register', {
+    const res = await userApi.register({
       account: registerData.account,
       email: registerData.email,
       password: registerData.password,
     });
 
     const { token, user } = res.data;
-    userStore.login(user.account, token, user.role, user.avatar);
+    userStore.login(user.account, token, user.role as number, user.avatar);
 
     Notify.create({
       type: 'positive',

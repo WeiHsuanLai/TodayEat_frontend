@@ -58,7 +58,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { Loader } from '@googlemaps/js-api-loader';
-import { api } from 'src/composables/axios';
+import { placesApi } from 'src/api';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
@@ -226,7 +226,7 @@ const fetchNearby = async () => {
     };
     console.log('params', params);
 
-    const res = await api.get('/places/nearby-stores', { params });
+    const res = await placesApi.getNearbyStores(params);
     console.log('res', res);
     places.value = res.data.results;
     for (const place of places.value) {

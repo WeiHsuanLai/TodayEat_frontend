@@ -125,7 +125,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
-import { useApi } from 'src/composables/axios';
+import { userApi } from 'src/api';
 import { Notify } from 'quasar';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
@@ -168,14 +168,14 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
   console.log('✅ Google JWT Token:', credential);
 
   // 傳到後端驗證
-  api
-    .post('/user/googleLogin', { token: credential })
+  userApi
+    .googleLogin({ token: credential })
     .then((res) => {
       Notify.create({ type: 'positive', message: 'Google 登入成功' });
       emit('login', {
         username: res.data.user.account,
         token: res.data.token,
-        role: res.data.user.role,
+        role: res.data.user.role as number,
         avatar: res.data.user.avatar,
       });
       show.value = false;
@@ -222,12 +222,10 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'login', payload: { username: string; token: string; role: string; avatar: string }): void;
+  (e: 'login', payload: { username: string; token: string; role: number; avatar: string }): void;
 }>();
 
 // api
-const { api } = useApi();
-
 const captchaUrl = ref(import.meta.env.VITE_API + 'auth/captcha?t=' + Date.now());
 
 const refreshCaptcha = () => {
@@ -237,7 +235,8 @@ const refreshCaptcha = () => {
 // 表單型別
 interface LoginForm {
   account: string;
-  password: string;
+  password?: string;
+  captcha?: string;
 }
 
 // 顯示狀態雙向綁定
@@ -352,7 +351,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
 
   const login = values as unknown as LoginForm;
   try {
-    const res = await api.post('/user/login', login);
+    const res = await userApi.login(login);
 
     Notify.create({
       type: 'warning',
@@ -364,7 +363,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
     emit('login', {
       username: res.data.user.account,
       token: res.data.token,
-      role: res.data.user.role,
+      role: res.data.user.role as number,
       avatar: res.data.user.avatar,
     });
     show.value = false;

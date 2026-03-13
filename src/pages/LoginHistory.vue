@@ -54,36 +54,18 @@
 import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from 'src/stores/userStore';
-import { useApi } from 'src/composables/axios';
+import { userApi, type LoginLog } from 'src/api';
 import type { QTableColumn } from 'quasar';
 import { date } from 'quasar';
 
-interface LoginRecord {
-  _id: string;
-  userId: string;
-  action: string;
-  ip: string;
-  userAgent: string;
-  timestamp: string;
-  account: string;
-  email?: string;
-  role?: number;
-}
-
-interface ApiResponse {
-  success: boolean;
-  logs: LoginRecord[];
-}
-
 const { t } = useI18n();
-const { api } = useApi();
 const userStore = useUserStore();
 
 const loading = ref(false);
-const rows = ref<LoginRecord[]>([]);
+const rows = ref<LoginLog[]>([]);
 
-const columns = computed<QTableColumn<LoginRecord>[]>(() => {
-  const baseColumns: QTableColumn<LoginRecord>[] = [
+const columns = computed<QTableColumn<LoginLog>[]>(() => {
+  const baseColumns: QTableColumn<LoginLog>[] = [
     { name: 'timestamp', align: 'center', label: '登入時間', field: 'timestamp', sortable: true },
     { name: 'ip', align: 'center', label: 'IP 地址', field: 'ip' },
     { name: 'userAgent', align: 'center', label: '裝置資訊', field: 'userAgent', style: 'max-width: 250px; white-space: normal; word-break: break-all;' },
@@ -105,12 +87,9 @@ function formatDate(val: string) {
 async function fetchData() {
   loading.value = true;
   try {
-    const endpoint = userStore.role === 1 ? '/admin/login-logs' : '/user/login-logs';
-    const response = await api.get<ApiResponse>(endpoint, {
-      headers: {
-        Authorization: `Bearer ${userStore.token}`,
-      },
-    });
+    const response = userStore.role === 1 
+      ? await userApi.getAdminLoginLogs()
+      : await userApi.getLoginLogs();
 
     if (response.data.success) {
       rows.value = response.data.logs;

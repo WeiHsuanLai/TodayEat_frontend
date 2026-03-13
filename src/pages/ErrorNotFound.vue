@@ -21,7 +21,7 @@
 import { onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
-import { api } from 'src/composables/axios';
+import { systemApi } from 'src/api';
 
 const router = useRouter();
 const $q = useQuasar();
@@ -32,7 +32,7 @@ const MAX_RETRIES = 10;
 
 async function checkHealth() {
   try {
-    const res = await api.get('/health');
+    const res = await systemApi.checkHealth();
     if (res.data?.status === 'UP') {
       $q.notify({
         type: 'positive',

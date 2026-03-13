@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { onMounted, nextTick } from 'vue';
-import { api, setupApiContext } from 'src/composables/axios';
+import { setupApiContext, systemApi, userApi } from 'src/api';
 import { Notify, useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
@@ -25,7 +25,7 @@ onMounted(async () => {
   // 開啟時先做健康檢查康檢查
   const start = Date.now();
   try {
-    await api.get(`/health?_=${Date.now()}`);
+    await systemApi.checkHealth();
     const duration = Date.now() - start;
     if (duration > 4000) {
       Notify.create({
@@ -49,15 +49,15 @@ onMounted(async () => {
 
   if (userStore.token) {
     try {
-      const res = await api.get('/user/getCurrentUser', {
+      const res = await userApi.getCurrentUser({
         _skip401Handler: true,
       } as AxiosRequestConfig);
       const user = res.data.user;
 
       // 如果 user.avatar 存在才用，否則維持原 avatar，不覆寫
       void userStore.setUser({
-        username: user.username,
-        role: user.role,
+        username: user.account,
+        role: user.role as number,
         avatar: user.avatar?.trim() || userStore.avatar,
         token: userStore.token,
       });

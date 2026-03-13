@@ -222,11 +222,11 @@ watch(showLogin, (val) => {
   }
 });
 
-function handleLogin(data: { username: string; token: string; role: string; avatar: string }) {
+function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
   void userStore.setUser({
     username: data.username,
     token: data.token,
-    role: Number(data.role),
+    role: data.role,
     avatar: data.avatar,
   });
   showLogin.value = false;

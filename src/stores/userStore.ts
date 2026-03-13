@@ -1,6 +1,6 @@
 // src/stores/userStore.ts
 import { defineStore } from 'pinia';
-import { useApi } from 'src/composables/axios';
+import { userApi, foodApi, type PrizeItem } from 'src/api';
 import { Notify, Dialog } from 'quasar';
 
 // 這是建立一個名為 'user' 的 Pinia store，用來管理使用者登入狀態與基本資料。
@@ -42,14 +42,9 @@ export const useUserStore = defineStore('user', {
 
     // 登出
     async logout(skipApi = false) {
-      const { api } = useApi();
       try {
         if (this.token && !skipApi) {
-          await api.post('/user/logout', null, {
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          });
+          await userApi.logout();
         }
       } catch (err) {
         console.warn('登出失敗:', err);
@@ -134,15 +129,10 @@ export const useUserStore = defineStore('user', {
 
       // ✅ 補送抽獎紀錄（如果有）
       if (this.pendingDraw) {
-        const { api } = useApi();
         const { meal, food } = this.pendingDraw;
 
         try {
-          const { data } = await api.get('/record/food-draw/today', {
-            headers: {
-              Authorization: `Bearer ${this.token}`,
-            },
-          });
+          const { data } = await foodApi.getTodayDraws();
 
           const existing = data?.meals?.[meal];
 
@@ -164,7 +154,7 @@ export const useUserStore = defineStore('user', {
               // eslint-disable-next-line @typescript-eslint/no-misused-promises
               .onOk(async () => {
                 try {
-                  await api.post('/record/food-draw', { meal, food });
+                  await foodApi.recordDraw(meal, food);
                   this.foodDrawToday = {
                     ...this.foodDrawToday,
                     [meal]: food,
@@ -192,7 +182,7 @@ export const useUserStore = defineStore('user', {
                 this.clearPendingDraw();
               });
           } else {
-            await api.post('/record/food-draw', { meal, food });
+            await foodApi.recordDraw(meal, food);
 
             Notify.create({
               type: 'positive',
@@ -227,16 +217,11 @@ export const useUserStore = defineStore('user', {
     },
 
     async loadPrizes() {
-      const { api } = useApi();
-      const endpoint = this.isLoggedIn ? '/user/custom-items' : '/prizes';
-      const config = this.token ? { headers: { Authorization: `Bearer ${this.token}` } } : {};
-
       let retry = false;
 
       try {
-        const res = await api.get(endpoint, config);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.customItems = res.data.map((p: any) => ({
+        const res = await foodApi.getPrizes(this.isLoggedIn);
+        this.customItems = res.data.map((p: PrizeItem) => ({
           label: p.label,
           items: p.items,
         }));
@@ -249,9 +234,8 @@ export const useUserStore = defineStore('user', {
       if (retry) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         try {
-          const res = await api.get(endpoint, config);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.customItems = res.data.map((p: any) => ({
+          const res = await foodApi.getPrizes(this.isLoggedIn);
+          this.customItems = res.data.map((p: PrizeItem) => ({
             label: p.label,
             items: p.items,
           }));
