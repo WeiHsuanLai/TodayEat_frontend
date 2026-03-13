@@ -70,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { useApi } from 'src/composables/axios';
 import { useUserStore } from 'src/stores/userStore';
@@ -98,7 +98,7 @@ const { api } = useApi();
 const userStore = useUserStore();
 
 // VeeValidate
-useForm<RegisterForm>({
+const form = useForm<RegisterForm>({
   validateOnMount: false,
 });
 
@@ -107,6 +107,23 @@ const show = computed({
   get: () => props.modelValue,
   set: (val: boolean) => emit('update:modelValue', val),
 });
+
+// 監聽開啟時重置表單
+watch(
+  () => props.modelValue,
+  (val) => {
+    if (val) {
+      form.resetForm({
+        values: {
+          account: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        },
+      });
+    }
+  },
+);
 
 // 使用 Zod 定義驗證規則
 const isAccountRequired = computed(() => true);
@@ -167,13 +184,13 @@ const schema = computed(() =>
 
 // 定義表單提交處理函數
 const onSubmit = async (values: Record<string, unknown>) => {
-  const form = values as unknown as RegisterForm;
+  const registerData = values as unknown as RegisterForm;
 
   try {
     const res = await api.post('/user/register', {
-      account: form.account,
-      email: form.email,
-      password: form.password,
+      account: registerData.account,
+      email: registerData.email,
+      password: registerData.password,
     });
 
     const { token, user } = res.data;
@@ -186,7 +203,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
       timeout: 1500,
     });
 
-    emit('register', form);
+    emit('register', registerData);
     emit('update:modelValue', false);
   } catch (err) {
     const error = err as AxiosError;

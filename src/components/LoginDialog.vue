@@ -123,14 +123,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { useApi } from 'src/composables/axios';
 import { Notify } from 'quasar';
-import { defineEmits } from 'vue';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
-import { nextTick } from 'vue';
 const form = useForm();
 form.resetForm({
   values: {
@@ -254,28 +252,43 @@ const toggleResetMode = () => {
   isResetMode.value = !isResetMode.value;
 };
 
-// 顯示對話框時重置為登入模式
-watch([() => props.modelValue, isResetMode], async ([dialogVal, resetVal]) => {
-  if (dialogVal && !resetVal) {
-    await nextTick();
-    const el = document.getElementById('google-login-button');
-    if (el && window.google?.accounts?.id) {
-      el.innerHTML = '';
-      window.google.accounts.id.renderButton(el, {
-        theme: 'outline',
-        size: 'large',
-        width: '300px',
-        text: 'signin_with',
-        shape: 'rectangular',
-      });
-    }
-  }
-});
-
 const captchaInputValue = ref('');
 watch(captchaInputValue, (val) => {
   form.setFieldValue('captcha', val);
 });
+
+// 顯示對話框時重置為登入模式
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (val) {
+      // 重置表單與驗證碼
+      isResetMode.value = false;
+      captchaInputValue.value = '';
+      form.resetForm({
+        values: {
+          account: '',
+          password: '',
+          captcha: '',
+        },
+      });
+      refreshCaptcha();
+
+      await nextTick();
+      const el = document.getElementById('google-login-button');
+      if (el && window.google?.accounts?.id) {
+        el.innerHTML = '';
+        window.google.accounts.id.renderButton(el, {
+          theme: 'outline',
+          size: 'large',
+          width: '300px',
+          text: 'signin_with',
+          shape: 'rectangular',
+        });
+      }
+    }
+  },
+);
 
 // 使用 Zod 定義驗證規則
 const isAccountRequired = computed(() => !isResetMode.value);
