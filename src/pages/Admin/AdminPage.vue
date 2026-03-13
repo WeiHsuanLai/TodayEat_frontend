@@ -1,3 +1,4 @@
+<!-- src/pages/Admin/AdminPage.vue - 管理員控制台 -->
 <template>
   <q-page class="q-pa-md">
     <div>只有管理員才可進入</div>

@@ -3,119 +3,98 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <!-- 網頁版導覽列 -->
-      <q-toolbar class="custom-toolbar q-px-md relative-position">
-        <!-- 左邊 -->
-        <!-- 左側導覽列 -->
-        <div class="row items-center">
-          <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
-        </div>
-
-        <!-- 中間 -->
-        <!-- 首頁標題 -->
+      <q-toolbar class="custom-toolbar q-px-md">
+        <!-- 左邊：首頁標題/Logo -->
         <div
-          class="absolute-center text-h6 text-weight-bold text-white cursor-pointer xs-hide"
+          class="text-h6 text-weight-bold text-white cursor-pointer row items-center"
           @click="goHome()"
         >
           🍉{{ t('appTitle') }}🍖
         </div>
 
-        <!-- 右邊 -->
-        <div class="row items-center q-gutter-sm q-ml-auto">
-          <!-- 登入彈窗按鈕 -->
-          <!-- 未登入顯示登入與註冊按鈕 -->
-          <q-btn
-            v-if="!userStore.isLoggedIn"
-            flat
-            color="white"
-            class="q-mr-sm"
-            @click="showRegister = true"
-            :label="t('register')"
-          />
-          <q-btn
-            v-if="!userStore.isLoggedIn"
-            flat
-            color="white"
-            class="q-mr-sm"
-            @click="showLogin = true"
-            :label="t('login')"
-          />
+        <q-space />
 
-          <!-- 已登入顯示使用者名稱與頭像下拉 -->
-
-          <q-avatar v-if="userStore.isLoggedIn" size="32px" class="q-mr-sm" color="blue-2">
-            <img :src="userStore.avatar" />
-          </q-avatar>
-          <!-- <q-avatar v-else color="secondary">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-          </q-avatar> -->
-
-          <!-- 登入後顯示下拉選單 -->
+        <!-- 右邊：導覽按鈕與使用者功能 -->
+        <div class="row items-center q-gutter-sm">
+          <!-- 主要導覽按鈕 -->
           <q-btn
             v-if="userStore.isLoggedIn"
             flat
-            dense
-            size="sm"
-            color="white"
-            class="q-mr-sm"
-            ref="userBtnRef"
-            icon-right="expand_more"
-          >
-            <q-menu auto-close anchor="bottom right" self="top right">
-              <div class="flex wrap flex-center full-width" avatar>
-                <div class="menu-margin">
-                  <div class="column items-center">
-                    <q-avatar v-if="userStore.isLoggedIn" size="32px">
-                      <img :src="userStore.avatar" />
-                    </q-avatar>
-                    <q-avatar v-else>
-                      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=guest" />
-                    </q-avatar>
-                  </div>
+            :label="t('mapSearch')"
+            to="/mapsearch"
+            class="gt-xs"
+          />
+          <q-btn flat :label="t('aboutus')" to="/about" class="gt-xs" />
+          <q-btn
+            v-if="userStore.role === 1"
+            flat
+            :label="t('adminPage')"
+            to="/admin"
+            class="gt-xs"
+          />
 
-                  <div class="text-center full-width q-mt-xs">
-                    {{ userStore.username }}
+          <q-separator dark vertical inset class="q-mx-sm gt-xs" />
+
+          <!-- 登入與註冊按鈕 -->
+          <template v-if="!userStore.isLoggedIn">
+            <q-btn flat color="white" @click="showRegister = true" :label="t('register')" />
+            <q-btn flat color="white" @click="showLogin = true" :label="t('login')" />
+          </template>
+
+          <!-- 已登入使用者資訊與選單 -->
+          <template v-else>
+            <q-avatar size="32px" color="blue-2">
+              <img :src="userStore.avatar" />
+            </q-avatar>
+
+            <q-btn flat dense size="sm" color="white" ref="userBtnRef" icon-right="expand_more">
+              <q-menu auto-close anchor="bottom right" self="top right">
+                <div class="flex wrap flex-center full-width" avatar>
+                  <div class="menu-margin">
+                    <div class="column items-center">
+                      <q-avatar size="32px">
+                        <img :src="userStore.avatar" />
+                      </q-avatar>
+                    </div>
+                    <div class="text-center full-width q-mt-xs">
+                      {{ userStore.username }}
+                    </div>
                   </div>
+                  <q-btn
+                    flat
+                    color="dark"
+                    :label="t('userSettings')"
+                    to="/setting"
+                    class="full-width justify-start q-px-md"
+                  />
+                  <q-btn
+                    flat
+                    color="dark"
+                    :label="t('foodDrawHistory')"
+                    to="/FoodDrawHistory"
+                    class="full-width justify-start q-px-md"
+                  />
+                  <q-btn
+                    flat
+                    color="dark"
+                    :label="t('loginHistory')"
+                    to="/LoginHistory"
+                    class="full-width justify-start q-px-md"
+                  />
+                  <q-btn
+                    flat
+                    color="primary"
+                    :label="t('signout')"
+                    @click="logout"
+                    class="full-width justify-start q-px-md"
+                  />
                 </div>
-                <q-btn
-                  flat
-                  color="dark"
-                  :label="t('userSettings')"
-                  to="/setting"
-                  class="full-width justify-start q-px-md"
-                />
-                <q-btn
-                  flat
-                  color="dark"
-                  :label="t('foodDrawHistory')"
-                  to="/FoodDrawHistory"
-                  class="full-width justify-start q-px-md"
-                />
-                <q-btn
-                  flat
-                  color="dark"
-                  :label="t('loginHistory')"
-                  to="/LoginHistory"
-                  class="full-width justify-start q-px-md"
-                />
-                <q-btn
-                  flat
-                  color="primary"
-                  :label="t('signout')"
-                  @click="logout"
-                  class="full-width justify-start q-px-md"
-                />
-              </div>
-            </q-menu>
-          </q-btn>
+              </q-menu>
+            </q-btn>
+          </template>
 
           <!-- 切換語言按鈕 -->
-          <q-btn
-            flat
-            :label="langButtonText"
-            color="white"
-            @click="toggleLang"
-            class="self-center xs-hide"
-          />
+          <q-btn flat label="中/EN" color="white" @click="toggleLang" class="gt-xs" />
         </div>
       </q-toolbar>
     </q-header>
@@ -134,33 +113,6 @@
       @forgotPassword="goToForgotPage"
     />
 
-    <!-- 左側導覽列彈窗 -->
-    <q-drawer v-model="leftDrawerOpen" bordered>
-      <q-list>
-        <q-item clickable v-ripple to="/">
-          <q-item-section avatar>
-            <q-icon name="home" />
-          </q-item-section>
-          <q-item-section> {{ t('home') }} </q-item-section>
-        </q-item>
-        <q-item clickable v-ripple to="/about">
-          <q-item-section> {{ t('aboutus') }} </q-item-section>
-        </q-item>
-        <q-item clickable v-ripple to="/setting">
-          <q-item-section> {{ t('userSettings') }} </q-item-section>
-        </q-item>
-        <q-item clickable v-ripple to="/LoginHistory">
-          <q-item-section> {{ t('loginHistory') }} </q-item-section>
-        </q-item>
-        <q-item clickable v-ripple to="/mapsearch">
-          <q-item-section> {{ t('mapSearch') }} </q-item-section>
-        </q-item>
-        <q-item v-if="userStore.role === 1" clickable v-ripple to="/admin">
-          <q-item-section> {{ t('adminPage') }} </q-item-section>
-        </q-item>
-      </q-list>
-    </q-drawer>
-
     <!-- 頁面內容 -->
     <q-page-container>
       <router-view v-slot="{ Component }">
@@ -173,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import LoginDialog from '../components/LoginDialog.vue';
@@ -183,14 +135,6 @@ import { useUIStore } from 'src/stores/ui';
 
 const userStore = useUserStore();
 userStore.restore();
-
-// 左側導航
-const leftDrawerOpen = ref(false);
-
-// 左側導覽列
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-}
 
 // 中上logo回首頁
 const router = useRouter();
@@ -263,8 +207,6 @@ const { locale, t } = useI18n();
 function toggleLang() {
   locale.value = locale.value === 'zh-TW' ? 'en-US' : 'zh-TW';
 }
-
-const langButtonText = computed(() => (locale.value === 'zh-TW' ? '中文' : 'EN'));
 </script>
 
 <style scoped>

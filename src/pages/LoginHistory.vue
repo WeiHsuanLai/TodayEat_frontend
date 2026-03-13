@@ -1,3 +1,4 @@
+<!-- src/pages/LoginHistory.vue - 登入歷史紀錄 -->
 <template>
   <q-page class="q-pa-md row items-center justify-center">
     <div class="col-12 col-md-10 col-lg-8">

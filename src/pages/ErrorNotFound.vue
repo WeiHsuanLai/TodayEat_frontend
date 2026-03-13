@@ -1,3 +1,4 @@
+<!-- src/pages/ErrorNotFound.vue - 找不到頁面 (404) -->
 <template>
   <div class="fullscreen bg-blue text-white text-center q-pa-md flex flex-center">
     <div>

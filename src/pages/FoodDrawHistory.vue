@@ -1,3 +1,4 @@
+<!-- src/pages/FoodDrawHistory.vue - 美食抽取紀錄 -->
 <template>
   <div class="row items-center justify-evenly">
     <h3>歷史紀錄維修中，請稍後再試。</h3>

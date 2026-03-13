@@ -1,3 +1,4 @@
+<!-- src/pages/IndexPage.vue - 首頁 (美食輪盤) -->
 <template>
   <q-page class="row items-center justify-evenly">
     <!-- <GridLottery :key="uiStore.gridLotteryKey" /> -->

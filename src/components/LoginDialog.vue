@@ -1,3 +1,4 @@
+<!-- src/components/LoginDialog.vue - 登入彈窗 -->
 <template>
   <q-dialog v-model="show" persistent>
     <q-card style="min-width: 380px; min-height: 200px; max-height: 90vh; overflow: hidden">

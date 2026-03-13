@@ -1,3 +1,4 @@
+<!-- src/components/RegisterDialog.vue - 註冊彈窗 -->
 <template>
   <q-dialog v-model="show" persistent>
     <q-card style="min-width: 350px">

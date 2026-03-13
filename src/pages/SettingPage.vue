@@ -1,3 +1,4 @@
+<!-- src/pages/SettingPage.vue - 使用者設定 -->
 <template>
   <q-page class="q-pa-md row justify-center">
     <div class="col-12 col-sm-8 col-md-6 col-lg-4">

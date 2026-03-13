@@ -1,3 +1,4 @@
+<!-- src/pages/MapSearch.vue - 美食地圖搜尋 -->
 <template>
   <q-page class="q-pa-md">
     <div class="q-mt-md row">

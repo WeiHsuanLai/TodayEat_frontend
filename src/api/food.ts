@@ -10,7 +10,35 @@ export interface TodayDrawsResponse {
   meals?: Record<string, string | undefined>;
 }
 
+export interface Dish {
+  _id: string;
+  name: string;
+  category: string;
+  image: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
 export const foodApi = {
+  /**
+   * 獲取所有菜色類別
+   */
+  getCategories() {
+    return api.get<ApiResponse<string[]>>('/dishes/categories');
+  },
+
+  /**
+   * 依類別獲取菜色
+   */
+  getDishesByCategory(category: string) {
+    return api.get<ApiResponse<Dish[]>>(`/dishes?category=${category}`);
+  },
+
   /**
    * 獲取今日抽取記錄
    */
