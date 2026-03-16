@@ -18,12 +18,12 @@ let getUserStore: () => ReturnType<typeof import('src/stores/userStore').useUser
 let getRouter: () => ReturnType<typeof import('vue-router').useRouter>;
 
 let isHandling401 = false; // 防止多次觸發 logout
-let isColdStartNotified = false; // 防止重複提示後端冷啟動
 const retryCount = new WeakMap<InternalAxiosRequestConfig, number>();
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API || 'https://api.example.com',
   withCredentials: true,
+  timeout: 30000, // 30 seconds timeout
 });
 
 // 攔截請求：注入 Token 與記錄時間
@@ -45,23 +45,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 攔截回應：處理 401、冷啟動、重試
+// 攔截回應：處理 401、重試
 api.interceptors.response.use(
   (response) => {
-    // 冷啟動偵測 (回應時間過長但成功)
-    const startTime = response.config.metadata?.startTime;
-    if (startTime) {
-      const duration = new Date().getTime() - startTime.getTime();
-      if (duration > 2000 && !isColdStartNotified) {
-        Notify.create({
-          type: 'info',
-          message: '後端可能剛從休眠中喚醒，請稍候...',
-          timeout: 3000,
-        });
-        isColdStartNotified = true;
-        setTimeout(() => (isColdStartNotified = false), 10000);
-      }
-    }
     return response;
   },
   async (error) => {
@@ -84,6 +70,7 @@ api.interceptors.response.use(
         Notify.create({
           type: 'negative',
           message: '登入憑證已過期，已自動登出',
+          position: 'bottom',
         });
         await userStore.logout(true);
         void router.push('/login');
@@ -94,23 +81,11 @@ api.interceptors.response.use(
       }, 1000);
     }
 
-    // 2. 處理逾時/冷啟動 retry
-    const startTime = config?.metadata?.startTime;
-    if (startTime) {
-      const duration = new Date().getTime() - startTime.getTime();
-      if (duration > 4000 && !isColdStartNotified) {
-        Notify.create({
-          type: 'info',
-          message: '後端回應逾時，可能正在喚醒中...',
-          timeout: 3000,
-        });
-        isColdStartNotified = true;
-        setTimeout(() => (isColdStartNotified = false), 10000);
-      }
-    }
-
     // 重試邏輯 (retry 1 次)
-    if (config) {
+    const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+    const isNetworkError = !status && error.message === 'Network Error'; // 通常是 ERR_CONNECTION_REFUSED
+
+    if (config && !isTimeout && !isNetworkError) {
       const currentRetry = retryCount.get(config) || 0;
       if (currentRetry < 1 && (status === 503 || !status)) {
         // 503 或網路錯誤可能是正在喚醒

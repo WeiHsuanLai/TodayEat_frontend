@@ -159,32 +159,39 @@ onMounted(async () => {
     const res = await foodApi.getCategories();
     if (res.data.success) {
       categories.value = res.data.data;
-      // 預設獲取「台式」菜色按鈕清單，但不填入九宮格
+      // 預設獲取「台式」菜色按鈕清單
       if (categories.value.includes('台式')) {
-        loadingDishes.value = true;
-        const dishRes = await foodApi.getDishesByCategory('台式');
-        if (dishRes.data.success) {
-          fetchedDishes.value = dishRes.data.data;
-        }
-        loadingDishes.value = false;
+        await fetchDishesByCategory('台式');
       }
     }
   } catch (error) {
     console.error('Failed to fetch initial data:', error);
-    loadingDishes.value = false;
+    categories.value = [];
+    selectedCategory.value = null;
   } finally {
     loadingCategories.value = false;
   }
 });
 
 async function fetchDishesByCategory(category: string | null) {
-  if (!category) return;
+  if (!category) {
+    fetchedDishes.value = [];
+    return;
+  }
   loadingDishes.value = true;
+
   try {
     const res = await foodApi.getDishesByCategory(category);
     if (res.data.success) {
       fetchedDishes.value = res.data.data;
+    } else {
+      throw new Error('API return success: false');
     }
+  } catch (error) {
+    console.error('Fetch dishes failed:', error);
+    // 失敗時清除輸入內容
+    selectedCategory.value = null;
+    fetchedDishes.value = [];
   } finally {
     loadingDishes.value = false;
   }

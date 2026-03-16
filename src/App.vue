@@ -22,26 +22,54 @@ setupApiContext(
 );
 
 onMounted(async () => {
-  // 開啟時先做健康檢查康檢查
-  const start = Date.now();
-  try {
-    await systemApi.checkHealth();
-    const duration = Date.now() - start;
-    if (duration > 4000) {
-      Notify.create({
-        type: 'info',
-        message: '⚠️ 後端可能正在從休眠中喚醒，請稍候...',
-        timeout: 3000,
-      });
+  // 開啟時先做健康檢查，若 1 秒內沒回應則顯示提示
+  let dismissWakeUp = () => { /* 預設空函式 */ };
+  let isNotified = false;
+  let isTimedOut = false;
+
+  const wakeUpTimer = setTimeout(() => {
+    dismissWakeUp = $q.notify({
+      group: 'wake-up',
+      type: 'info',
+      message: '⚠️ 後端可能正在從休眠中喚醒，請稍候...',
+      timeout: 0,
+      position: 'bottom',
+    });
+    isNotified = true;
+  }, 1000);
+
+  // 30 秒逾時處理
+  const failTimer = setTimeout(() => {
+    isTimedOut = true;
+    if (isNotified) {
+      dismissWakeUp();
+      isNotified = false;
     }
-  } catch {
     $q.notify({
       type: 'negative',
-      message: '⚠️ 無法連接伺服器，部分功能可能無法使用',
+      message: '❌ 伺服器連結失敗，請稍後再試或連繫客服',
+      position: 'bottom',
+      timeout: 5000,
     });
-    setTimeout(() => {
-      void router.replace('/not-found');
-    }, 300);
+  }, 30000);
+
+  try {
+    await systemApi.checkHealth();
+  } catch {
+    if (isTimedOut) return;
+    $q.notify({
+      type: 'negative',
+      message: '⚠️ 無法連接伺服器',
+      position: 'bottom',
+    });
+  } finally {
+    clearTimeout(wakeUpTimer);
+    clearTimeout(failTimer);
+    // 只有在未逾時且有顯示提示時才去關閉它
+    if (isNotified && !isTimedOut) {
+      dismissWakeUp();
+      isNotified = false;
+    }
   }
 
   // 還原本地 token
