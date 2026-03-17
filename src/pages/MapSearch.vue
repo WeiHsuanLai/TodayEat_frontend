@@ -1,56 +1,72 @@
 <!-- src/pages/MapSearch.vue - 美食地圖搜尋 -->
 <template>
   <q-page class="q-pa-md">
-    <div class="q-mt-md row">
-      <div class="text-h6 q-mb-md col-7">搜尋附近店家</div>
-      <div class="col-5 q-pl-md">
+    <!-- 搜尋列 -->
+    <div class="row q-col-gutter-sm items-center q-mb-md">
+      <div class="col-12 col-sm-6">
+        <div class="text-h6">搜尋附近店家</div>
+      </div>
+      <div class="col-12 col-sm-6">
         <q-input
           v-model="keyword"
           label="輸入關鍵字"
           @keyup.enter="onSearch"
           @compositionend="onSearch"
           dense
+          outlined
+          bg-color="white"
         >
           <template #append>
-            <q-btn flat icon="search" @click="onSearch" />
+            <q-btn flat icon="search" color="primary" @click="onSearch" />
           </template>
         </q-input>
       </div>
     </div>
 
-    <div class="q-mt-md row">
+    <div class="row q-col-gutter-md">
       <!-- 地圖區塊 -->
-      <div id="map" class="col-7" style="min-height: 450px; min-width: 450px"></div>
+      <div class="col-12 col-md-7">
+        <q-card flat bordered class="overflow-hidden">
+          <div id="map" class="map-container"></div>
+        </q-card>
+      </div>
 
       <!-- 清單區塊 -->
-      <div class="col-5 q-pl-md" style="max-height: 450px; overflow-y: auto">
-        <q-list bordered separator dense v-if="places.length">
-          <q-item v-for="(place, index) in places" :key="index" clickable>
-            <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
-              <q-img
-                :src="place.photoUrl || ''"
-                style="border-radius: 8px; width: 64px; height: 64px"
-                :ratio="1"
-                spinner-color="grey-5"
-              >
-                <template #error>
-                  <q-icon name="image_not_supported" size="32px" color="grey-5" />
-                </template>
-              </q-img>
-            </q-item-section>
+      <div class="col-12 col-md-5">
+        <q-card flat bordered class="full-height">
+          <q-card-section class="q-pa-none">
+            <div class="places-list-container">
+              <q-list separator v-if="places.length">
+                <q-item v-for="(place, index) in places" :key="index" clickable>
+                  <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
+                    <q-img
+                      :src="place.photoUrl || ''"
+                      style="border-radius: 8px; width: 64px; height: 64px"
+                      :ratio="1"
+                      spinner-color="grey-5"
+                    >
+                      <template #error>
+                        <q-icon name="image_not_supported" size="32px" color="grey-5" />
+                      </template>
+                    </q-img>
+                  </q-item-section>
 
-            <q-item-section>
-              <q-item-label
-                ><strong>{{ place.name }}</strong></q-item-label
-              >
-              <q-item-label caption>{{ place.vicinity }}</q-item-label>
-              <q-item-label caption>
-                ⭐️ {{ place.rating ?? '無評分' }}（{{ place.user_ratings_total ?? 0 }} 則）
-              </q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-        <div v-else class="text-grey">尚無搜尋結果</div>
+                  <q-item-section>
+                    <q-item-label class="text-weight-bold">{{ place.name }}</q-item-label>
+                    <q-item-label caption lines="2">{{ place.vicinity }}</q-item-label>
+                    <q-item-label caption class="text-primary text-weight-medium">
+                      ⭐️ {{ place.rating ?? '無' }}（{{ place.user_ratings_total ?? 0 }} 則）
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+              <div v-else class="text-grey q-pa-xl text-center">
+                <q-icon name="map" size="48px" color="grey-4" class="q-mb-sm" />
+                <div class="text-body1">尚無搜尋結果</div>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
     </div>
   </q-page>
@@ -310,3 +326,28 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.map-container {
+  width: 100%;
+  height: 50vh;
+  min-height: 350px;
+}
+
+.places-list-container {
+  max-height: calc(50vh + 30px);
+  overflow-y: auto;
+}
+
+/* 手機與平板版 (小於 1024px) */
+@media (max-width: 1023px) {
+  .map-container {
+    height: 40vh;
+    min-height: 280px;
+  }
+
+  .places-list-container {
+    max-height: 300px;
+  }
+}
+</style>

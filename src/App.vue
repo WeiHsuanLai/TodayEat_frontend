@@ -3,18 +3,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, nextTick } from 'vue';
-import { setupApiContext, systemApi, userApi } from 'src/api';
+import { onMounted, nextTick, watch } from 'vue';
+import { setupApiContext, systemApi, userApi, setApiLanguage } from 'src/api';
 import { Notify, useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
+import { useI18n } from 'vue-i18n';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 
 const $q = useQuasar();
 const router = useRouter();
 const userStore = useUserStore();
+const { locale } = useI18n();
+
 userStore.restore();
+
+// 監聽語系變化並更新 API Header
+watch(
+  locale,
+  (val) => {
+    setApiLanguage(val);
+  },
+  { immediate: true },
+);
+
 // 設定 axios 攔截上下文
 setupApiContext(
   () => userStore,

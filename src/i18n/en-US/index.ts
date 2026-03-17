@@ -40,8 +40,9 @@ export default {
   passwordTooShort: 'New password must be at least 4 characters',
   pleaseConfirmNewPassword: 'Please confirm your new password',
   passwordsDoNotMatch: 'Passwords do not match',
+  startYourCulinaryJourney: 'Start your culinary adventure and record every heartbeat meal!',
   // About Page
-  aboutDescription: 'Solving the ultimate puzzle: "What to eat today?"<br />We create a fun and relaxed food-finding experience for everyone.',
+  aboutDescription: 'Solving the ultimate puzzle: "What to eat today?"\nWe create a fun and relaxed food-finding experience for everyone.',
   drawDesc: 'Let destiny decide your next meal! Spin the roulette and solve your dining dilemmas in a snap.',
   mapTitle: 'Food Map',
   mapDesc: 'Integrated Google Maps! Not only for recommendations, but also for checking reviews and navigation.',

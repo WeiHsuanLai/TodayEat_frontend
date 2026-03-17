@@ -187,12 +187,8 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
     });
 }
 
-onMounted(async () => {
-  await loadGoogleScript();
+function initGoogleSignIn() {
   if (window.google?.accounts?.id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any)._gsiInited) return;
-
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleLogin,
@@ -200,21 +196,14 @@ onMounted(async () => {
       cancel_on_tap_outside: false,
       context: 'signin',
     });
-
-    // ✅ 使用 Popup Flow: 渲染 Google 登入按鈕
-    window.google.accounts.id.renderButton(document.getElementById('google-login-button')!, {
-      theme: 'outline',
-      size: 'large',
-      width: '100%',
-      text: 'signin_with',
-      shape: 'rectangular',
-    });
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any)._gsiInited = true;
-  } else {
-    console.warn('❌ Google API 未正確載入');
   }
+}
+
+onMounted(async () => {
+  await loadGoogleScript();
+  initGoogleSignIn();
 });
 
 // props & emits
@@ -274,9 +263,16 @@ watch(
       });
       refreshCaptcha();
 
+      // 等待 Dialog 動畫與 DOM 掛載
       await nextTick();
       const el = document.getElementById('google-login-button');
       if (el && window.google?.accounts?.id) {
+        // 確保初始化
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(window as any)._gsiInited) {
+          initGoogleSignIn();
+        }
+        
         el.innerHTML = '';
         window.google.accounts.id.renderButton(el, {
           theme: 'outline',
@@ -355,7 +351,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
     const res = await userApi.login(login);
 
     Notify.create({
-      type: 'warning',
+      type: 'positive',
       message: '登入成功',
       position: 'center',
       timeout: 1500,

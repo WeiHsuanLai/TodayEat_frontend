@@ -56,9 +56,31 @@
             </q-td>
           </template>
 
-          <!-- 操作欄位 (刪除按鈕) -->
+          <!-- 操作欄位 (編輯、地圖搜尋與刪除按鈕) -->
           <template v-slot:body-cell-actions="props">
             <q-td :props="props">
+              <q-btn
+                flat
+                round
+                color="primary"
+                icon="edit"
+                size="sm"
+                @click="openEditDialog(props.row)"
+                class="q-mr-xs"
+              >
+                <q-tooltip>編輯紀錄</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                color="secondary"
+                icon="map"
+                size="sm"
+                @click="goToMapSearch(props.row.dishName)"
+                class="q-mr-xs"
+              >
+                <q-tooltip>{{ t('searchOnMap') }}</q-tooltip>
+              </q-btn>
               <q-btn
                 flat
                 round
@@ -74,33 +96,95 @@
 
           <!-- 空狀態 -->
           <template v-slot:no-data>
-            <div class="full-width row flex-center q-pa-xl text-grey-7">
-              <q-icon name="history" size="48px" class="q-mb-md" />
-              <div class="text-h6">尚無任何抽取紀錄</div>
-              <q-btn flat color="primary" label="前往抽獎" to="/draw" class="q-mt-md" />
+            <div class="full-width q-pa-xl flex flex-center">
+              <div class="row items-center justify-center q-gutter-md text-grey-7">
+                <q-icon name="history" size="48px" />
+                <div class="text-h6 text-weight-medium">{{ t('noData') }}</div>
+                <q-btn
+                  unelevated
+                  rounded
+                  color="primary"
+                  :label="t('startDraw')"
+                  to="/draw"
+                  icon="play_arrow"
+                />
+              </div>
             </div>
           </template>
         </q-table>
       </q-card>
     </div>
+
+    <!-- 編輯彈窗 -->
+    <q-dialog v-model="editDialog.show" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6 text-primary">{{ t('editRecord') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-md">
+          <q-input
+            v-model="editDialog.dishName"
+            :label="t('dishName')"
+            outlined
+            dense
+            class="q-mb-md"
+            autofocus
+          />
+          <q-input
+            v-model="editDialog.note"
+            :label="t('note')"
+            type="textarea"
+            outlined
+            dense
+            rows="3"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right" class="text-primary q-pa-md">
+          <q-btn flat label="取消" v-close-popup color="grey-7" />
+          <q-btn
+            unelevated
+            label="儲存修改"
+            color="primary"
+            @click="handleSaveEdit"
+            :loading="editDialog.loading"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { foodApi, type FoodRecord } from 'src/api/food';
 import { useQuasar } from 'quasar';
 import { date } from 'quasar';
 
+import { useUserStore } from 'src/stores/userStore';
+
 const { t } = useI18n();
 const router = useRouter();
 const $q = useQuasar();
+const userStore = useUserStore();
 
 const loading = ref(false);
 const filter = ref('');
 const rawRecords = ref<Record<string, FoodRecord[]>>({});
+
+// 編輯彈窗狀態
+const editDialog = reactive({
+  show: false,
+  loading: false,
+  id: '',
+  dishName: '',
+  note: '',
+});
 
 const pagination = ref({
   sortBy: 'createdAt',
@@ -170,6 +254,58 @@ async function fetchHistory() {
   }
 }
 
+function openEditDialog(record: FoodRecord) {
+  editDialog.id = record._id;
+  editDialog.dishName = record.dishName;
+  editDialog.note = record.note || '';
+  editDialog.show = true;
+}
+
+function goToMapSearch(dishName: string) {
+  const targetPath = '/mapsearch';
+  const targetQuery = { keyword: dishName };
+
+  if (!userStore.isLoggedIn) {
+    $q.notify({
+      type: 'warning',
+      message: t('pleaseLogin'),
+      position: 'center',
+      timeout: 2000,
+    });
+    userStore.showLoginModal = true;
+    userStore.loginRedirectPath = `${targetPath}?keyword=${encodeURIComponent(dishName)}`;
+    return;
+  }
+
+  void router.push({
+    path: targetPath,
+    query: targetQuery,
+  });
+}
+
+async function handleSaveEdit() {
+  if (!editDialog.dishName.trim()) {
+    $q.notify({ type: 'warning', message: '名稱不能為空', position: 'center' });
+    return;
+  }
+
+  editDialog.loading = true;
+  try {
+    await foodApi.updateFoodRecord(editDialog.id, {
+      dishName: editDialog.dishName,
+      note: editDialog.note,
+    });
+    $q.notify({ type: 'positive', message: t('saveSuccess'), position: 'center' });
+    editDialog.show = false;
+    await fetchHistory(); // 重新整理列表
+  } catch (error) {
+    console.error('修改失敗:', error);
+    $q.notify({ type: 'negative', message: t('saveFailed'), position: 'center' });
+  } finally {
+    editDialog.loading = false;
+  }
+}
+
 function confirmDelete(record: FoodRecord) {
   $q.dialog({
     title: '確認刪除',
@@ -228,6 +364,11 @@ function formatTime(dateStr: string) {
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+
+:deep(.q-table th),
+:deep(.q-table td) {
+  vertical-align: middle !important;
 }
 
 :deep(.q-table th) {

@@ -124,3 +124,12 @@ export function setAuthorization(token: string) {
     delete api.defaults.headers.common.Authorization;
   }
 }
+
+/**
+ * 設定 API 語系
+ */
+export function setApiLanguage(lang: string) {
+  // 將 zh-TW 轉為後端要求的 zh
+  const backendLang = lang.startsWith('zh') ? 'zh' : 'en';
+  api.defaults.headers.common['Accept-Language'] = backendLang;
+}

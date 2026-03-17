@@ -13,15 +13,17 @@
             'text-primary text-weight-bolder q-mb-md',
           ]"
         >
-          🍉{{ t('aboutus') }}🍖
+          {{ t('aboutus') }}
         </div>
         <div
           :class="[
             $q.screen.lt.sm ? 'text-subtitle1' : 'text-h6',
             'text-grey-8 line-height-relaxed',
           ]"
-          v-html="t('aboutDescription')"
-        ></div>
+          style="white-space: pre-line"
+        >
+          {{ t('aboutDescription') }}
+        </div>
       </div>
 
       <!-- 核心特色區塊 - 移除 overflow: hidden 並加入 padding 確保動畫空間 -->

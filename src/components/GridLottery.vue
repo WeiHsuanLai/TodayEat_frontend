@@ -66,17 +66,27 @@
                   winner
                 }}</span>
               </div>
-              <q-btn
-                v-if="!isDrawing"
-                label="儲存到今日紀錄"
-                color="primary"
-                unelevated
-                rounded
-                class="q-mt-md"
-                icon="save"
-                :loading="isSaving"
-                @click="promptForNoteAndSave"
-              />
+              <div class="row q-gutter-sm q-mt-md">
+                <q-btn
+                  v-if="!isDrawing"
+                  :label="t('startDraw') === '立即開始' ? '儲存紀錄' : 'Save Record'"
+                  color="primary"
+                  unelevated
+                  rounded
+                  icon="save"
+                  :loading="isSaving"
+                  @click="promptForNoteAndSave"
+                />
+                <q-btn
+                  v-if="!isDrawing"
+                  :label="t('searchOnMap')"
+                  color="secondary"
+                  unelevated
+                  rounded
+                  icon="map"
+                  @click="goToMapSearch"
+                />
+              </div>
             </div>
           </transition>
         </div>
@@ -234,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { foodApi } from 'src/api/food';
@@ -242,7 +252,7 @@ import type { Dish } from 'src/api/food';
 import { useQuasar } from 'quasar';
 import { useUserStore } from 'src/stores/userStore';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const $q = useQuasar();
 const router = useRouter();
 const userStore = useUserStore();
@@ -272,25 +282,64 @@ onMounted(async () => {
       const res = await foodApi.getCategories();
       if (res.data.success && res.data.data.length > 0) {
         categories.value = res.data.data;
-        // 預設獲取第一個分類的菜色按鈕清單
-        const firstCategory = categories.value[0] ?? null;
-        selectedCategory.value = firstCategory;
-        await fetchDishesByCategory(firstCategory);
+        // 預設獲取第一個分類
+        if (!selectedCategory.value) {
+          selectedCategory.value = categories.value[0] ?? null;
+        }
         isFetched = true;
       } else {
-        // 若成功但無資料，等待 3 秒重試
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     } catch (error) {
       console.warn('正在等待伺服器回傳分類資料...', error);
-      // 失敗時等待 3 秒後重試
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
   loadingCategories.value = false;
 });
+// 監聽分類變化，獲取菜色
+watch(
+  () => selectedCategory.value,
+  async (newVal: string | null) => {
+    if (newVal) {
+      await fetchDishesByCategory(newVal);
+    } else {
+      fetchedDishes.value = [];
+    }
+  },
+  { immediate: true },
+);
+
+// 監聽語系變化，重新獲取分類
+watch(
+  () => locale.value,
+  async () => {
+
+    loadingCategories.value = true;
+    try {
+      const res = await foodApi.getCategories();
+      if (res.data.success && res.data.data.length > 0) {
+        const oldCategory = selectedCategory.value;
+        categories.value = res.data.data;
+
+        // 如果原本有選分類，嘗試在新的分類列表中找回它，找不到就選第一個
+        if (!oldCategory || !categories.value.includes(oldCategory)) {
+          selectedCategory.value = categories.value[0] ?? null;
+        } else {
+          // 如果分類名沒變，手動觸發一次獲取以更新語系
+          await fetchDishesByCategory(selectedCategory.value);
+        }
+      }
+    } catch (error) {
+      console.error('語系切換後更新分類失敗:', error);
+    } finally {
+      loadingCategories.value = false;
+    }
+  },
+);
 
 async function fetchDishesByCategory(category: string | null) {
+  console.log('[GridLottery] 嘗試獲取分類菜色:', category);
   if (!category) {
     fetchedDishes.value = [];
     return;
@@ -299,6 +348,7 @@ async function fetchDishesByCategory(category: string | null) {
 
   try {
     const res = await foodApi.getDishesByCategory(category);
+    console.log('[GridLottery] API 回傳結果:', res.data);
     if (res.data.success) {
       fetchedDishes.value = res.data.data;
     } else {
@@ -306,8 +356,6 @@ async function fetchDishesByCategory(category: string | null) {
     }
   } catch (error) {
     console.error('Fetch dishes failed:', error);
-    // 失敗時清除輸入內容
-    selectedCategory.value = null;
     fetchedDishes.value = [];
   } finally {
     loadingDishes.value = false;
@@ -409,6 +457,30 @@ function startDraw() {
       isDrawing.value = false;
     }
   }, 100);
+}
+
+function goToMapSearch() {
+  if (!winner.value) return;
+
+  const targetPath = '/mapsearch';
+  const targetQuery = { keyword: winner.value };
+
+  if (!userStore.isLoggedIn) {
+    $q.notify({
+      type: 'warning',
+      message: t('pleaseLogin'),
+      position: 'center',
+      timeout: 2000,
+    });
+    userStore.showLoginModal = true;
+    userStore.loginRedirectPath = `${targetPath}?keyword=${encodeURIComponent(winner.value)}`;
+    return;
+  }
+
+  void router.push({
+    path: targetPath,
+    query: targetQuery,
+  });
 }
 
 // 儲存邏輯 (含備註對話框)
