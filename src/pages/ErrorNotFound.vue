@@ -28,13 +28,11 @@ const router = useRouter();
 const $q = useQuasar();
 
 let retryTimer: ReturnType<typeof setInterval> | null = null;
-let retryCount = 0;
-const MAX_RETRIES = 10;
 
 async function checkHealth() {
   try {
     const res = await systemApi.checkHealth();
-    if (res.data?.status === 'UP') {
+    if (res.status === 200) {
       $q.notify({
         type: 'positive',
         message: '✅ 伺服器已恢復，自動跳轉首頁',
@@ -43,19 +41,7 @@ async function checkHealth() {
       void router.replace('/');
     }
   } catch {
-    retryCount++;
-    if (retryCount >= MAX_RETRIES) {
-      clearRetry();
-      $q.notify({
-        type: 'warning',
-        message: '⚠️ 已重試 10 次仍無法連接，請稍後再試',
-      });
-    } else {
-      $q.notify({
-        type: 'negative',
-        message: `❌ 無法連接伺服器，將繼續重試 (${retryCount}/${MAX_RETRIES})`,
-      });
-    }
+    // 繼續等下一次定時觸發
   }
 }
 

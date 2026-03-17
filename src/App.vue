@@ -22,54 +22,49 @@ setupApiContext(
 );
 
 onMounted(async () => {
-  // 開啟時先做健康檢查，若 1 秒內沒回應則顯示提示
-  let dismissWakeUp = () => { /* 預設空函式 */ };
-  let isNotified = false;
-  let isTimedOut = false;
+  // 開啟時持續做健康檢查直到成功為止
+  let dismissWakeUp: (() => void) | null = null;
+  let isConnected = false;
 
+  // 1 秒後如果還沒連上，才顯示提示
   const wakeUpTimer = setTimeout(() => {
-    dismissWakeUp = $q.notify({
-      group: 'wake-up',
-      type: 'info',
-      message: '⚠️ 後端可能正在從休眠中喚醒，請稍候...',
-      timeout: 0,
-      position: 'bottom',
-    });
-    isNotified = true;
+    if (!isConnected) {
+      dismissWakeUp = $q.notify({
+        group: 'wake-up',
+        type: 'info',
+        message: '⚠️ 正在嘗試連線伺服器，請稍候...',
+        timeout: 0,
+        position: 'bottom',
+      });
+    }
   }, 1000);
 
-  // 30 秒逾時處理
-  const failTimer = setTimeout(() => {
-    isTimedOut = true;
-    if (isNotified) {
-      dismissWakeUp();
-      isNotified = false;
+  // 持續輪詢直到伺服器啟動
+  while (!isConnected) {
+    try {
+      const res = await systemApi.checkHealth();
+      if (res.status === 200) {
+        isConnected = true;
+      } else {
+        // 如果不是 200，也要等待再重試
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    } catch {
+      // 伺服器尚未啟動或網路錯誤，等待 3 秒後重試
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
-    $q.notify({
-      type: 'negative',
-      message: '❌ 伺服器連結失敗，請稍後再試或連繫客服',
-      position: 'bottom',
-      timeout: 5000,
-    });
-  }, 30000);
+  }
 
-  try {
-    await systemApi.checkHealth();
-  } catch {
-    if (isTimedOut) return;
+  // 清除計時器與提示
+  clearTimeout(wakeUpTimer);
+  if (typeof dismissWakeUp === 'function') {
+    (dismissWakeUp as () => void)();
     $q.notify({
-      type: 'negative',
-      message: '⚠️ 無法連接伺服器',
+      type: 'positive',
+      message: '✅ 伺服器已連線',
+      timeout: 2000,
       position: 'bottom',
     });
-  } finally {
-    clearTimeout(wakeUpTimer);
-    clearTimeout(failTimer);
-    // 只有在未逾時且有顯示提示時才去關閉它
-    if (isNotified && !isTimedOut) {
-      dismissWakeUp();
-      isNotified = false;
-    }
   }
 
   // 還原本地 token

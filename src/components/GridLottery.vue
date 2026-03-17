@@ -1,10 +1,10 @@
 <!-- src/components/GridLottery.vue - 九宮格抽獎元件 -->
 <template>
   <div class="lottery-container q-pa-lg">
-    <div class="row q-col-gutter-xl items-start justify-center">
+    <div class="row q-col-gutter-xl items-center justify-center" style="min-height: 80vh">
       <!-- 左側：九宮格抽獎區 -->
-      <div class="col-12 col-md-7 column items-center">
-        <h3 class="text-h5 q-mb-lg text-weight-bold">{{ t('whatToEatToday') }}</h3>
+      <div class="col-12 col-md-6 column items-center">
+        <h3 class="text-h5 q-mb-lg text-weight-bold text-center">{{ t('whatToEatToday') }}</h3>
 
         <!-- 九宮格 (動態 N x N) -->
         <div class="grid-box relative-position" :style="gridContainerStyle">
@@ -33,17 +33,31 @@
 
         <!-- 底部按鈕與結果 -->
         <div class="column items-center q-mt-xl full-width">
-          <q-btn
-            :label="t('start')"
-            color="accent"
-            size="lg"
-            unelevated
-            rounded
-            padding="12px 60px"
-            @click="startDraw"
-            :disable="isDrawing || prizes.length < 2"
-            class="start-btn"
-          />
+          <div class="row q-gutter-md">
+            <q-btn
+              :label="t('start')"
+              color="accent"
+              size="lg"
+              unelevated
+              rounded
+              padding="12px 60px"
+              @click="startDraw"
+              :disable="isDrawing || prizes.length < 2"
+              class="start-btn"
+            />
+            <!-- 手機版專用：喚起選單按鈕 -->
+            <q-btn
+              icon="tune"
+              color="primary"
+              flat
+              round
+              size="lg"
+              class="lt-md"
+              @click="showMobilePanel = true"
+            >
+              <q-tooltip>{{ t('selectCategory') }}</q-tooltip>
+            </q-btn>
+          </div>
 
           <transition name="scale">
             <div v-if="winner !== null" class="result-banner q-mt-lg text-h6 text-weight-bold">
@@ -53,14 +67,93 @@
         </div>
       </div>
 
-      <!-- 右側：控制與選菜面板 -->
-      <div class="col-12 col-md-4">
+      <!-- 右側：控制與選菜面板 (僅在桌面端顯示) -->
+      <div class="col-12 col-md-6 column items-center gt-sm">
         <q-card flat bordered class="control-panel q-pa-lg shadow-1">
-          <div class="text-subtitle1 text-weight-bold q-mb-md text-primary">
-            {{ t('selectCategory') }}
-          </div>
+          <slot name="control-content">
+            <div class="text-subtitle1 text-weight-bold q-mb-md text-primary">
+              {{ t('selectCategory') }}
+            </div>
 
-          <!-- 分類選擇 -->
+            <!-- 分類選擇 -->
+            <q-select
+              v-model="selectedCategory"
+              :options="categories"
+              dense
+              outlined
+              bg-color="white"
+              @update:model-value="fetchDishesByCategory"
+              :loading="loadingCategories"
+              class="q-mb-lg custom-input"
+            />
+
+            <!-- 菜品按鈕區 -->
+            <div class="dish-selector q-mb-xl">
+              <div v-if="fetchedDishes.length > 0" class="row q-gutter-sm">
+                <q-btn
+                  v-for="dish in fetchedDishes"
+                  :key="dish._id"
+                  :label="dish.name"
+                  unelevated
+                  class="dish-btn text-weight-bold"
+                  @click="addFromList(dish.name)"
+                  :disable="prizes.includes(dish.name)"
+                />
+                <!-- 批次新增按鈕 -->
+                <q-btn
+                  v-if="fetchedDishes.length > 0"
+                  :label="t('addAll')"
+                  color="secondary"
+                  unelevated
+                  class="dish-btn text-weight-bold add-all-btn"
+                  @click="addAllFetchedDishes"
+                />
+              </div>
+              <div v-else-if="!loadingDishes" class="text-caption text-grey-6 text-center q-pa-md">
+                {{ selectedCategory ? '此分類暫無菜色' : '請先選擇一個類別' }}
+              </div>
+            </div>
+
+            <q-separator class="q-mb-lg" />
+
+            <!-- 手動輸入 -->
+            <div class="q-mt-md">
+              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('inputDish') }}</div>
+              <div class="row q-gutter-sm no-wrap">
+                <q-input
+                  v-model="prizeInput"
+                  dense
+                  outlined
+                  bg-color="white"
+                  class="col custom-input"
+                  @keyup.enter="addPrize"
+                />
+                <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
+              </div>
+            </div>
+
+            <q-btn
+              :label="t('clear')"
+              flat
+              color="negative"
+              class="full-width q-mt-xl rounded-btn"
+              @click="clearPrizes"
+              icon="delete_outline"
+            />
+          </slot>
+        </q-card>
+      </div>
+    </div>
+
+    <!-- 手機版專用：底部選單彈窗 -->
+    <q-dialog v-model="showMobilePanel" position="bottom" class="lt-md">
+      <q-card class="control-panel q-pa-lg no-border-radius-top" style="max-height: 80vh">
+        <div class="row items-center justify-between q-mb-md">
+          <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
+          <q-btn icon="close" flat round dense v-close-popup />
+        </div>
+
+        <div class="q-mb-md">
           <q-select
             v-model="selectedCategory"
             :options="categories"
@@ -69,65 +162,59 @@
             bg-color="white"
             @update:model-value="fetchDishesByCategory"
             :loading="loadingCategories"
-            class="q-mb-lg custom-input"
+            class="custom-input"
           />
+        </div>
 
-          <!-- 菜品按鈕區 -->
-          <div class="dish-selector q-mb-xl">
-            <div v-if="fetchedDishes.length > 0" class="row q-gutter-sm">
-              <q-btn
-                v-for="dish in fetchedDishes"
-                :key="dish._id"
-                :label="dish.name"
-                unelevated
-                class="dish-btn text-weight-bold"
-                @click="addFromList(dish.name)"
-                :disable="prizes.includes(dish.name)"
-              />
-              <!-- 批次新增按鈕 -->
-              <q-btn
-                v-if="fetchedDishes.length > 0"
-                :label="t('addAll')"
-                color="secondary"
-                unelevated
-                class="dish-btn text-weight-bold add-all-btn"
-                @click="addAllFetchedDishes"
-              />
-            </div>
-            <div v-else-if="!loadingDishes" class="text-caption text-grey-6 text-center q-pa-md">
-              {{ selectedCategory ? '此分類暫無菜色' : '請先選擇一個類別' }}
-            </div>
+        <div class="dish-selector q-mb-lg">
+          <div v-if="fetchedDishes.length > 0" class="row q-gutter-sm">
+            <q-btn
+              v-for="dish in fetchedDishes"
+              :key="dish._id"
+              :label="dish.name"
+              unelevated
+              class="dish-btn text-weight-bold"
+              @click="addFromList(dish.name)"
+              :disable="prizes.includes(dish.name)"
+            />
+            <q-btn
+              v-if="fetchedDishes.length > 0"
+              :label="t('addAll')"
+              color="secondary"
+              unelevated
+              class="dish-btn text-weight-bold add-all-btn"
+              @click="addAllFetchedDishes"
+            />
           </div>
+        </div>
 
-          <q-separator class="q-mb-lg" />
+        <q-separator class="q-mb-md" />
 
-          <!-- 手動輸入 -->
-          <div class="q-mt-md">
-            <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('inputDish') }}</div>
-            <div class="row q-gutter-sm no-wrap">
-              <q-input
-                v-model="prizeInput"
-                dense
-                outlined
-                bg-color="white"
-                class="col custom-input"
-                @keyup.enter="addPrize"
-              />
-              <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
-            </div>
+        <div class="q-mt-md">
+          <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('inputDish') }}</div>
+          <div class="row q-gutter-sm no-wrap">
+            <q-input
+              v-model="prizeInput"
+              dense
+              outlined
+              bg-color="white"
+              class="col custom-input"
+              @keyup.enter="addPrize"
+            />
+            <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
           </div>
+        </div>
 
-          <q-btn
-            :label="t('clear')"
-            flat
-            color="negative"
-            class="full-width q-mt-xl rounded-btn"
-            @click="clearPrizes"
-            icon="delete_outline"
-          />
-        </q-card>
-      </div>
-    </div>
+        <q-btn
+          :label="t('clear')"
+          flat
+          color="negative"
+          class="full-width q-mt-md rounded-btn"
+          @click="clearPrizes"
+          icon="delete_outline"
+        />
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -145,32 +232,40 @@ const prizeInput = ref<string>('');
 const winner = ref<string | null>(null);
 const isDrawing = ref(false);
 const currentIndex = ref<number>(-1);
+const showMobilePanel = ref(false); // 控制手機版彈窗顯示
 
 // API 相關資料
 const categories = ref<string[]>([]);
 const fetchedDishes = ref<Dish[]>([]);
-const selectedCategory = ref<string | null>('台式');
+const selectedCategory = ref<string | null>(null);
 const loadingCategories = ref(false);
 const loadingDishes = ref(false);
 
 onMounted(async () => {
   loadingCategories.value = true;
-  try {
-    const res = await foodApi.getCategories();
-    if (res.data.success) {
-      categories.value = res.data.data;
-      // 預設獲取「台式」菜色按鈕清單
-      if (categories.value.includes('台式')) {
-        await fetchDishesByCategory('台式');
+  let isFetched = false;
+
+  while (!isFetched) {
+    try {
+      const res = await foodApi.getCategories();
+      if (res.data.success && res.data.data.length > 0) {
+        categories.value = res.data.data;
+        // 預設獲取第一個分類的菜色按鈕清單
+        const firstCategory = categories.value[0] ?? null;
+        selectedCategory.value = firstCategory;
+        await fetchDishesByCategory(firstCategory);
+        isFetched = true;
+      } else {
+        // 若成功但無資料，等待 3 秒重試
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
+    } catch (error) {
+      console.warn('正在等待伺服器回傳分類資料...', error);
+      // 失敗時等待 3 秒後重試
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
-  } catch (error) {
-    console.error('Failed to fetch initial data:', error);
-    categories.value = [];
-    selectedCategory.value = null;
-  } finally {
-    loadingCategories.value = false;
   }
+  loadingCategories.value = false;
 });
 
 async function fetchDishesByCategory(category: string | null) {
@@ -255,26 +350,25 @@ const displayPrizes = computed(() => {
 });
 
 const gridContainerStyle = computed(() => ({
-  width: '350px',
+  width: '100%',
+  maxWidth: '350px',
   minHeight: '350px',
 }));
 
 const itemStyle = computed(() => {
   const n = gridSize.value;
-  const size = Math.floor((350 - (n - 1) * 10) / n);
   let fontSize = '1rem';
   if (n === 4) fontSize = '0.85rem';
   if (n >= 5) fontSize = '0.75rem';
   return {
-    width: `${size}px`,
-    height: `${size}px`,
     fontSize,
   };
 });
 
 const gridStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${gridSize.value}, auto)`,
+  gridTemplateColumns: `repeat(${gridSize.value}, 1fr)`,
   gap: '10px',
+  width: '100%',
 }));
 
 // 抽獎邏輯
@@ -298,7 +392,7 @@ function startDraw() {
 
 <style scoped>
 .lottery-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -317,7 +411,7 @@ function startDraw() {
   align-items: center;
   font-weight: 700;
   color: #444;
-  /* 移除 width/height 的動畫，僅保留顏色、變形與陰影 */
+  aspect-ratio: 1/1;
   transition:
     background-color 0.2s ease,
     transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
@@ -362,9 +456,8 @@ function startDraw() {
   border-radius: 20px;
   background: #ffffff;
   border: 2px solid #f5f5f5;
-  position: sticky;
-  top: 100px;
-  min-width: 400px; /* 調整最小寬度限制 */
+  width: 100%;
+  max-width: 500px;
   min-height: 600px; /* 加入最小高度限制 */
   display: flex;
   flex-direction: column;
