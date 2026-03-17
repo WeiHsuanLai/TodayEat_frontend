@@ -7,6 +7,8 @@ export default {
   signout: '登出',
   register: '註冊',
   about: '關於我們',
+  draw: '擲骰子',
+  startDraw: '立即開始',
   username: '使用者名稱',
   password: '密碼',
   // 左側導覽列
@@ -38,4 +40,12 @@ export default {
   passwordTooShort: '新密碼至少需要 4 個字元',
   pleaseConfirmNewPassword: '請再次輸入新密碼',
   passwordsDoNotMatch: '兩次輸入的密碼不一致',
+  // About Page
+  aboutDescription: '解決「今天要吃什麼？」的終極難題。<br />我們為所有選擇障礙者打造一個輕鬆、有趣的覓食體驗。',
+  drawDesc: '讓命運決定你的下一餐！轉動美食輪盤，瞬間解決午晚餐的煩惱。',
+  mapTitle: '美食地圖',
+  mapDesc: '整合 Google 地圖，除了推薦餐廳，更能直接查看評價與導航，美食近在咫尺。',
+  historyTitle: '我的足跡',
+  historyDesc: '登入後可紀錄每一筆抽取紀錄，讓你追蹤曾經嘗試過的美食點滴。',
+  pleaseLogin: '請先登入後再進行此操作',
 };

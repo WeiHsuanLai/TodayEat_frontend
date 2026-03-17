@@ -1,68 +1,127 @@
-<!-- src/pages/AboutPage.vue - 關於我們 -->
+<!-- src/pages/AboutPage.vue - 首頁 (原關於我們) -->
 <template>
-  <q-page class="flex flex-center q-pa-lg bg-grey-1">
-    <div class="column items-center full-width" style="max-width: 800px">
+  <q-page :class="['flex flex-center bg-grey-1', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
+    <div
+      class="column items-center justify-center full-width"
+      :style="{ maxWidth: $q.screen.lt.sm ? '100%' : '1000px' }"
+    >
       <!-- 標題與簡介 -->
-      <div class="text-center q-mb-xl">
-        <div class="text-h3 text-primary text-weight-bolder q-mb-md">
+      <div :class="['text-center full-width', $q.screen.lt.sm ? 'q-mb-lg' : 'q-mb-xl']">
+        <div
+          :class="[
+            $q.screen.lt.sm ? 'text-h4' : 'text-h3',
+            'text-primary text-weight-bolder q-mb-md',
+          ]"
+        >
           🍉{{ t('aboutus') }}🍖
         </div>
-        <div class="text-h6 text-grey-8 line-height-relaxed">
-          解決「今天要吃什麼？」的終極難題。<br />
-          我們為所有選擇障礙者打造一個輕鬆、有趣的覓食體驗。
-        </div>
+        <div
+          :class="[
+            $q.screen.lt.sm ? 'text-subtitle1' : 'text-h6',
+            'text-grey-8 line-height-relaxed',
+          ]"
+          v-html="t('aboutDescription')"
+        ></div>
       </div>
 
-      <!-- 核心特色區塊 -->
-      <div class="row q-col-gutter-lg full-width">
-        <div class="col-12 col-sm-4">
-          <q-card flat bordered class="about-card text-center q-pa-md full-height">
-            <q-card-section>
-              <q-icon name="casino" size="56px" color="primary" class="q-mb-md" />
-              <div class="text-h6 text-weight-bold q-mb-sm">隨機抽取</div>
-              <div class="text-body2 text-grey-7">
-                讓命運決定你的下一餐！轉動美食輪盤，瞬間解決午晚餐的煩惱。
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
+      <!-- 核心特色區塊 - 移除 overflow: hidden 並加入 padding 確保動畫空間 -->
+      <div class="full-width q-py-md">
+        <div
+          :class="[
+            'row justify-center items-stretch',
+            $q.screen.lt.sm ? 'q-col-gutter-md' : 'q-col-gutter-lg',
+          ]"
+        >
+          <!-- 擲骰子 -->
+          <div class="col-12 col-sm-4">
+            <q-card
+              flat
+              bordered
+              class="about-card mobile-card-height cursor-pointer full-height"
+              @click="handleCardClick('/draw')"
+            >
+              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+                <!-- 手機版：水平並排 -->
+                <div
+                  v-if="$q.screen.lt.sm"
+                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                >
+                  <q-icon name="casino" size="32px" color="primary" />
+                  <div class="text-h6 text-weight-bold">{{ t('draw') }}</div>
+                </div>
+                <!-- 電腦版：垂直排列 -->
+                <template v-else>
+                  <q-icon name="casino" size="56px" color="primary" class="q-mb-md" />
+                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('draw') }}</div>
+                </template>
 
-        <div class="col-12 col-sm-4">
-          <q-card flat bordered class="about-card text-center q-pa-md full-height">
-            <q-card-section>
-              <q-icon name="map" size="56px" color="secondary" class="q-mb-md" />
-              <div class="text-h6 text-weight-bold q-mb-sm">美食地圖</div>
-              <div class="text-body2 text-grey-7">
-                整合 Google 地圖，除了推薦餐廳，更能直接查看評價與導航，美食近在咫尺。
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
+                <div class="text-body2 text-grey-7">
+                  {{ t('drawDesc') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
 
-        <div class="col-12 col-sm-4">
-          <q-card flat bordered class="about-card text-center q-pa-md full-height">
-            <q-card-section>
-              <q-icon name="history" size="56px" color="accent" class="q-mb-md" />
-              <div class="text-h6 text-weight-bold q-mb-sm">我的足跡</div>
-              <div class="text-body2 text-grey-7">
-                登入後可紀錄每一筆抽取紀錄，讓你追蹤曾經嘗試過的美食點滴。
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
+          <!-- 美食地圖 -->
+          <div class="col-12 col-sm-4">
+            <q-card
+              flat
+              bordered
+              class="about-card mobile-card-height cursor-pointer full-height"
+              @click="handleCardClick('/mapsearch', true)"
+            >
+              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+                <!-- 手機版：水平並排 -->
+                <div
+                  v-if="$q.screen.lt.sm"
+                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                >
+                  <q-icon name="map" size="32px" color="secondary" />
+                  <div class="text-h6 text-weight-bold">{{ t('mapTitle') }}</div>
+                </div>
+                <!-- 電腦版：垂直排列 -->
+                <template v-else>
+                  <q-icon name="map" size="56px" color="secondary" class="q-mb-md" />
+                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('mapTitle') }}</div>
+                </template>
 
-      <!-- 底部標語 -->
-      <div class="q-mt-xl text-center">
-        <q-btn
-          to="/"
-          color="primary"
-          rounded
-          unelevated
-          padding="12px 32px"
-          icon="restaurant"
-          :label="t('home')"
-        />
+                <div class="text-body2 text-grey-7">
+                  {{ t('mapDesc') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
+          <!-- 我的足跡 -->
+          <div class="col-12 col-sm-4">
+            <q-card
+              flat
+              bordered
+              class="about-card mobile-card-height cursor-pointer full-height"
+              @click="handleCardClick('/FoodDrawHistory', true)"
+            >
+              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+                <!-- 手機版：水平並排 -->
+                <div
+                  v-if="$q.screen.lt.sm"
+                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                >
+                  <q-icon name="history" size="32px" color="accent" />
+                  <div class="text-h6 text-weight-bold">{{ t('historyTitle') }}</div>
+                </div>
+                <!-- 電腦版：垂直排列 -->
+                <template v-else>
+                  <q-icon name="history" size="56px" color="accent" class="q-mb-md" />
+                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('historyTitle') }}</div>
+                </template>
+
+                <div class="text-body2 text-grey-7">
+                  {{ t('historyDesc') }}
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
       </div>
     </div>
   </q-page>
@@ -70,8 +129,29 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import { useUserStore } from 'src/stores/userStore';
+import { useQuasar } from 'quasar';
 
 const { t } = useI18n();
+const router = useRouter();
+const userStore = useUserStore();
+const $q = useQuasar();
+
+const handleCardClick = (path: string, requiresAuth = false) => {
+  if (requiresAuth && !userStore.isLoggedIn) {
+    $q.notify({
+      type: 'warning',
+      message: t('pleaseLogin'),
+      position: 'center',
+      timeout: 2000,
+    });
+    userStore.showLoginModal = true;
+    userStore.loginRedirectPath = path;
+    return;
+  }
+  void router.push(path);
+};
 </script>
 
 <style scoped>
@@ -82,9 +162,21 @@ const { t } = useI18n();
   border-radius: 16px;
 }
 
+@media (max-width: 599px) {
+  .mobile-card-height {
+    width: 80vw;
+    min-height: 45vw;
+    margin: 0 auto;
+  }
+}
+
 .about-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .line-height-relaxed {

@@ -5,8 +5,9 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
-      { path: 'about', component: () => import('pages/AboutPage.vue') },
+      { path: '', name: 'Home', component: () => import('pages/AboutPage.vue') },
+      { path: 'draw', name: 'Index', component: () => import('pages/IndexPage.vue') },
+      { path: 'about', redirect: '/' }, // 保留 about 路徑但重新導向到首頁
       {
         path: 'setting',
         component: () => import('pages/SettingPage.vue'),

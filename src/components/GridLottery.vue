@@ -60,8 +60,23 @@
           </div>
 
           <transition name="scale">
-            <div v-if="winner !== null" class="result-banner q-mt-lg text-h6 text-weight-bold">
-              🎉 {{ t('todayRecommended') }}：<span class="text-primary text-h5">{{ winner }}</span>
+            <div v-if="winner !== null" class="column items-center q-mt-lg">
+              <div class="result-banner text-h6 text-weight-bold">
+                🎉 {{ t('todayRecommended') }}：<span class="text-primary text-h5">{{
+                  winner
+                }}</span>
+              </div>
+              <q-btn
+                v-if="!isDrawing"
+                label="儲存到今日紀錄"
+                color="primary"
+                unelevated
+                rounded
+                class="q-mt-md"
+                icon="save"
+                :loading="isSaving"
+                @click="promptForNoteAndSave"
+              />
             </div>
           </transition>
         </div>
@@ -221,16 +236,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { foodApi } from 'src/api/food';
 import type { Dish } from 'src/api/food';
+import { useQuasar } from 'quasar';
+import { useUserStore } from 'src/stores/userStore';
 
 const { t } = useI18n();
+const $q = useQuasar();
+const router = useRouter();
+const userStore = useUserStore();
 
 // 抽獎核心資料
 const prizes = ref<string[]>([]); // 初始為空，由使用者點選按鈕填入
 const prizeInput = ref<string>('');
 const winner = ref<string | null>(null);
 const isDrawing = ref(false);
+const isSaving = ref(false);
 const currentIndex = ref<number>(-1);
 const showMobilePanel = ref(false); // 控制手機版彈窗顯示
 
@@ -387,6 +409,64 @@ function startDraw() {
       isDrawing.value = false;
     }
   }, 100);
+}
+
+// 儲存邏輯 (含備註對話框)
+function promptForNoteAndSave() {
+  if (!winner.value) return;
+
+  // 檢查登入狀態
+  if (!userStore.isLoggedIn) {
+    $q.notify({
+      type: 'warning',
+      message: '請先登入後再儲存紀錄',
+      position: 'center',
+    });
+    userStore.showLoginModal = true;
+    // 設定當前頁面為登入後的重導向路徑
+    userStore.loginRedirectPath = router.currentRoute.value.fullPath;
+    return;
+  }
+
+  $q.dialog({
+    title: '儲存推薦',
+    message: `您抽中了「${winner.value}」，想加點備註嗎？`,
+    prompt: {
+      model: '',
+      type: 'text',
+      placeholder: '例如：店名',
+    },
+    cancel: true,
+    persistent: true,
+  }).onOk((note: string) => {
+    void saveRecord(note);
+  });
+}
+
+async function saveRecord(note: string) {
+  if (!winner.value) return;
+  isSaving.value = true;
+  try {
+    const trimmedNote = note.trim();
+    await foodApi.recordFood({
+      dishName: winner.value,
+      ...(trimmedNote ? { note: trimmedNote } : {}),
+    });
+    $q.notify({
+      type: 'positive',
+      message: '推薦紀錄已儲存',
+      position: 'center',
+    });
+  } catch (error) {
+    console.error('儲存紀錄失敗:', error);
+    $q.notify({
+      type: 'negative',
+      message: '儲存失敗，請稍後再試',
+      position: 'center',
+    });
+  } finally {
+    isSaving.value = false;
+  }
 }
 </script>
 

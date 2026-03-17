@@ -34,7 +34,7 @@ onMounted(async () => {
         type: 'info',
         message: '⚠️ 正在嘗試連線伺服器，請稍候...',
         timeout: 0,
-        position: 'bottom',
+        position: 'center',
       });
     }
   }, 1000);
@@ -47,11 +47,11 @@ onMounted(async () => {
         isConnected = true;
       } else {
         // 如果不是 200，也要等待再重試
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     } catch {
       // 伺服器尚未啟動或網路錯誤，等待 3 秒後重試
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
   }
 
@@ -63,7 +63,7 @@ onMounted(async () => {
       type: 'positive',
       message: '✅ 伺服器已連線',
       timeout: 2000,
-      position: 'bottom',
+      position: 'center',
     });
   }
 
