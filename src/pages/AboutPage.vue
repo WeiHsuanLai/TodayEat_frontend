@@ -41,7 +41,6 @@
               $q.screen.lt.sm ? 'q-col-gutter-md' : 'q-col-gutter-lg',
             ]"
           >
-
             <!-- 擲骰子 -->
             <div class="col-12 col-sm-4">
               <q-card
@@ -193,7 +192,7 @@ const handleCardClick = (path: string, requiresAuth = false) => {
 @media (max-width: 599px) {
   .mobile-card-height {
     width: 72vw;
-    min-height: 100px; /* 增加高度，使其比例更均勻 */
+    min-height: 100px;
     margin: 0 auto;
   }
 }
@@ -222,8 +221,7 @@ const handleCardClick = (path: string, requiresAuth = false) => {
 
 @media (max-width: 600px) {
   .line-compact .content-wrapper {
-    transform: scale(0.85);
-    margin-top: -10px;
+    transform: scale(0.95);
   }
 }
 </style>

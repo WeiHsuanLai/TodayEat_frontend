@@ -221,9 +221,16 @@
           transition: isPanning ? 'none' : 'transform 0.4s cubic-bezier(0, 0, 0.2, 1)',
         }"
       >
-        <!-- 頂部拉動區域 (Handle Area) -->
-        <div class="drawer-handle-wrapper" v-touch-pan.vertical.prevent.mouse="handlePan">
-          <div class="drawer-handle"></div>
+        <!-- 頂部拉動區域 (Handle Area) - 移除標題，僅保留拉條與關閉按鈕 -->
+        <div class="drawer-header" v-touch-pan.vertical.prevent.mouse="handlePan">
+          <div class="row items-center justify-between q-px-md q-pt-sm relative-position">
+            <!-- 佔位用，確保 Handle 居中 -->
+            <div style="width: 32px"></div>
+            
+            <div class="drawer-handle"></div>
+            
+            <q-btn icon="close" flat round dense size="sm" color="grey-7" @click.stop="showMobilePanel = false" />
+          </div>
         </div>
 
         <!-- 內容區 (使用 q-scroll-area 確保捲動條可見) -->
@@ -233,14 +240,9 @@
           :bar-style="{ right: '2px', borderRadius: '9px', background: '#f0f0f0', width: '10px', opacity: '0.2' }"
         >
           <div class="q-pa-md q-pb-xl">
-            <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
-              <q-btn icon="close" flat round dense @click="showMobilePanel = false" />
-            </div>
-
             <!-- 手動輸入 (移至上方) -->
-            <div class="q-mb-lg">
-              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('manualInputDish') }}</div>
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs text-grey-7">{{ t('manualInputDish') }}</div>
               <div class="row q-gutter-sm no-wrap">
                 <q-input
                   v-model="prizeInput"
@@ -254,11 +256,9 @@
               </div>
             </div>
 
-            <q-separator class="q-mb-md" />
-
             <!-- 分類選擇 -->
-            <div class="q-mt-md q-mb-md">
-              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('selectCategory') }}</div>
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs text-grey-7">{{ t('selectCategory') }}</div>
               <q-select
                 v-model="selectedCategory"
                 :options="categories"
@@ -840,7 +840,7 @@ async function saveRecord(note: string) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.2);
   pointer-events: all;
   will-change: opacity;
 }
@@ -857,20 +857,21 @@ async function saveRecord(note: string) {
   will-change: transform;
 }
 
-.drawer-handle-wrapper {
+.drawer-header {
   width: 100%;
-  padding: 12px 0 16px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   cursor: grab;
   touch-action: none;
+  background: white;
 }
 
-.drawer-handle-wrapper:active {
+.drawer-header:active {
   cursor: grabbing;
 }
 
 .drawer-handle {
+  align-self: center;
   width: 40px;
   height: 5px;
   background: #e0e0e0;
