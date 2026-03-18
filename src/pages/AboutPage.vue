@@ -1,127 +1,151 @@
 <!-- src/pages/AboutPage.vue - 首頁 (原關於我們) -->
 <template>
-  <q-page :class="['flex flex-center bg-grey-1', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
-    <div
-      class="column items-center justify-center full-width"
-      :style="{ maxWidth: $q.screen.lt.sm ? '100%' : '1000px' }"
-    >
-      <!-- 標題與簡介 -->
-      <div :class="['text-center full-width', $q.screen.lt.sm ? 'q-mb-lg' : 'q-mb-xl']">
-        <div
-          :class="[
-            $q.screen.lt.sm ? 'text-h4' : 'text-h3',
-            'text-primary text-weight-bolder q-mb-md',
-          ]"
-        >
-          {{ t('aboutus') }}
-        </div>
-        <div
-          :class="[
-            $q.screen.lt.sm ? 'text-subtitle1' : 'text-h6',
-            'text-grey-8 line-height-relaxed',
-          ]"
-          style="white-space: pre-line"
-        >
-          {{ t('aboutDescription') }}
-        </div>
-      </div>
-
-      <!-- 核心特色區塊 - 移除 overflow: hidden 並加入 padding 確保動畫空間 -->
-      <div class="full-width q-py-md">
-        <div
-          :class="[
-            'row justify-center items-stretch',
-            $q.screen.lt.sm ? 'q-col-gutter-md' : 'q-col-gutter-lg',
-          ]"
-        >
-          <!-- 擲骰子 -->
-          <div class="col-12 col-sm-4">
-            <q-card
-              flat
-              bordered
-              class="about-card mobile-card-height cursor-pointer full-height"
-              @click="handleCardClick('/draw')"
-            >
-              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
-                <!-- 手機版：水平並排 -->
-                <div
-                  v-if="$q.screen.lt.sm"
-                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
-                >
-                  <q-icon name="casino" size="32px" color="primary" />
-                  <div class="text-h6 text-weight-bold">{{ t('draw') }}</div>
-                </div>
-                <!-- 電腦版：垂直排列 -->
-                <template v-else>
-                  <q-icon name="casino" size="56px" color="primary" class="q-mb-md" />
-                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('draw') }}</div>
-                </template>
-
-                <div class="text-body2 text-grey-7 q-mt-xs">
-                  {{ t('drawDesc') }}
-                </div>
-              </q-card-section>
-            </q-card>
+  <q-page
+    :class="[
+      'flex flex-center bg-grey-1',
+      $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg',
+      { 'line-compact': uiStore.isLineBrowser },
+    ]"
+  >
+    <div class="content-wrapper full-width flex flex-center">
+      <div
+        class="column items-center justify-center full-width"
+        :style="{ maxWidth: $q.screen.lt.sm ? '100%' : '1000px' }"
+      >
+        <!-- 標題與簡介 -->
+        <div :class="['text-center full-width', $q.screen.lt.sm ? 'q-mb-md' : 'q-mb-lg']">
+          <div
+            :class="[
+              $q.screen.lt.sm ? 'text-h4' : 'text-h3',
+              'text-primary text-weight-bolder q-mb-sm',
+            ]"
+          >
+            {{ t('aboutus') }}
           </div>
-
-          <!-- 美食地圖 -->
-          <div class="col-12 col-sm-4">
-            <q-card
-              flat
-              bordered
-              class="about-card mobile-card-height cursor-pointer full-height"
-              @click="handleCardClick('/mapsearch', true)"
-            >
-              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
-                <!-- 手機版：水平並排 -->
-                <div
-                  v-if="$q.screen.lt.sm"
-                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
-                >
-                  <q-icon name="map" size="32px" color="secondary" />
-                  <div class="text-h6 text-weight-bold">{{ t('mapTitle') }}</div>
-                </div>
-                <!-- 電腦版：垂直排列 -->
-                <template v-else>
-                  <q-icon name="map" size="56px" color="secondary" class="q-mb-md" />
-                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('mapTitle') }}</div>
-                </template>
-
-                <div class="text-body2 text-grey-7 q-mt-xs">
-                  {{ t('mapDesc') }}
-                </div>
-              </q-card-section>
-            </q-card>
+          <div
+            :class="[
+              $q.screen.lt.sm ? 'text-subtitle1' : 'text-h6',
+              'text-grey-8 line-height-relaxed',
+            ]"
+            style="white-space: pre-line"
+          >
+            {{ t('aboutDescription') }}
           </div>
+        </div>
 
-          <!-- 我的足跡 -->
-          <div class="col-12 col-sm-4">
-            <q-card
-              flat
-              bordered
-              class="about-card mobile-card-height cursor-pointer full-height"
-              @click="handleCardClick('/FoodDrawHistory', true)"
-            >
-              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
-                <!-- 手機版：水平並排 -->
-                <div
-                  v-if="$q.screen.lt.sm"
-                  class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+        <!-- 核心特色區塊 -->
+        <div class="full-width q-py-xs">
+          <div
+            :class="[
+              'row justify-center items-stretch',
+              $q.screen.lt.sm ? 'q-col-gutter-md' : 'q-col-gutter-lg',
+            ]"
+          >
+
+            <!-- 擲骰子 -->
+            <div class="col-12 col-sm-4">
+              <q-card
+                flat
+                bordered
+                class="about-card mobile-card-height cursor-pointer full-height"
+                @click="handleCardClick('/draw')"
+              >
+                <q-card-section
+                  :class="[
+                    'full-height flex flex-center column text-center',
+                    $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg',
+                  ]"
                 >
-                  <q-icon name="history" size="32px" color="accent" />
-                  <div class="text-h6 text-weight-bold">{{ t('historyTitle') }}</div>
-                </div>
-                <!-- 電腦版：垂直排列 -->
-                <template v-else>
-                  <q-icon name="history" size="56px" color="accent" class="q-mb-md" />
-                  <div class="text-h6 text-weight-bold q-mb-sm">{{ t('historyTitle') }}</div>
-                </template>
+                  <!-- 手機版：水平並排 -->
+                  <div
+                    v-if="$q.screen.lt.sm"
+                    class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                  >
+                    <q-icon name="casino" size="32px" color="primary" />
+                    <div class="text-h6 text-weight-bold">{{ t('draw') }}</div>
+                  </div>
+                  <!-- 電腦版：垂直排列 -->
+                  <template v-else>
+                    <q-icon name="casino" size="56px" color="primary" class="q-mb-md" />
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ t('draw') }}</div>
+                  </template>
 
-                <div class="text-body2 text-grey-7 q-mt-xs">
-                  {{ t('historyDesc') }}
-                </div>
-              </q-card-section>
-            </q-card>
+                  <div class="text-body2 text-grey-7 q-mt-xs">
+                    {{ t('drawDesc') }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- 美食地圖 -->
+            <div class="col-12 col-sm-4">
+              <q-card
+                flat
+                bordered
+                class="about-card mobile-card-height cursor-pointer full-height"
+                @click="handleCardClick('/mapsearch', true)"
+              >
+                <q-card-section
+                  :class="[
+                    'full-height flex flex-center column text-center',
+                    $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg',
+                  ]"
+                >
+                  <!-- 手機版：水平並排 -->
+                  <div
+                    v-if="$q.screen.lt.sm"
+                    class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                  >
+                    <q-icon name="map" size="32px" color="secondary" />
+                    <div class="text-h6 text-weight-bold">{{ t('mapTitle') }}</div>
+                  </div>
+                  <!-- 電腦版：垂直排列 -->
+                  <template v-else>
+                    <q-icon name="map" size="56px" color="secondary" class="q-mb-md" />
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ t('mapTitle') }}</div>
+                  </template>
+
+                  <div class="text-body2 text-grey-7 q-mt-xs">
+                    {{ t('mapDesc') }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
+
+            <!-- 我的足跡 -->
+            <div class="col-12 col-sm-4">
+              <q-card
+                flat
+                bordered
+                class="about-card mobile-card-height cursor-pointer full-height"
+                @click="handleCardClick('/FoodDrawHistory', true)"
+              >
+                <q-card-section
+                  :class="[
+                    'full-height flex flex-center column text-center',
+                    $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg',
+                  ]"
+                >
+                  <!-- 手機版：水平並排 -->
+                  <div
+                    v-if="$q.screen.lt.sm"
+                    class="row items-center justify-center q-gutter-x-sm q-mb-sm full-width"
+                  >
+                    <q-icon name="history" size="32px" color="accent" />
+                    <div class="text-h6 text-weight-bold">{{ t('historyTitle') }}</div>
+                  </div>
+                  <!-- 電腦版：垂直排列 -->
+                  <template v-else>
+                    <q-icon name="history" size="56px" color="accent" class="q-mb-md" />
+                    <div class="text-h6 text-weight-bold q-mb-sm">{{ t('historyTitle') }}</div>
+                  </template>
+
+                  <div class="text-body2 text-grey-7 q-mt-xs">
+                    {{ t('historyDesc') }}
+                  </div>
+                </q-card-section>
+              </q-card>
+            </div>
           </div>
         </div>
       </div>
@@ -133,11 +157,13 @@
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
+import { useUIStore } from 'src/stores/ui';
 import { useQuasar } from 'quasar';
 
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
+const uiStore = useUIStore();
 const $q = useQuasar();
 
 const handleCardClick = (path: string, requiresAuth = false) => {
@@ -167,7 +193,7 @@ const handleCardClick = (path: string, requiresAuth = false) => {
 @media (max-width: 599px) {
   .mobile-card-height {
     width: 72vw;
-    min-height: 160px; /* 增加高度，使其比例更均勻 */
+    min-height: 100px; /* 增加高度，使其比例更均勻 */
     margin: 0 auto;
   }
 }
@@ -183,5 +209,21 @@ const handleCardClick = (path: string, requiresAuth = false) => {
 
 .line-height-relaxed {
   line-height: 1.8;
+}
+
+.content-wrapper {
+  transition: transform 0.3s ease;
+}
+
+.line-compact .content-wrapper {
+  transform: scale(0.9);
+  transform-origin: top center;
+}
+
+@media (max-width: 600px) {
+  .line-compact .content-wrapper {
+    transform: scale(0.85);
+    margin-top: -10px;
+  }
 }
 </style>
