@@ -37,11 +37,13 @@ export async function authGuard(
     try {
       // 驗證 token 是否有效
       const res = await userApi.getCurrentUser();
-      console.log('登入回傳資料:', res.data);
+      // console.log('登入回傳資料:', res.data);
+      const user = res.data.user;
+
       void userStore.setUser({
-        username: res.data.user.account,
-        role: res.data.user.role as number,
-        avatar: res.data.user.avatar?.trim() || userStore.avatar,
+        username: user.account || user.username || userStore.username,
+        role: user.role,
+        avatar: user.avatar?.trim() || userStore.avatar,
         token: userStore.token,
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

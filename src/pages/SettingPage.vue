@@ -2,69 +2,94 @@
 <template>
   <q-page class="q-pa-md row justify-center">
     <div class="col-12 col-sm-8 col-md-6 col-lg-4">
-      <q-card flat bordered class="q-pa-md">
+      <q-card
+        flat
+        bordered
+        class="q-pa-md shadow-2"
+        style="min-height: 350px; display: flex; flex-direction: column"
+      >
         <q-card-section>
-          <div class="text-h6">{{ t('changePassword') }}</div>
+          <div class="text-h6">{{ t('userSettings') }}</div>
         </q-card-section>
 
-        <VeeForm :validation-schema="schema" @submit="onSubmit" v-slot="{ meta }">
-          <q-card-section class="q-gutter-y-md">
-            <Field name="currentPassword" v-slot="{ field, errorMessage, meta: m }">
-              <q-input
-                v-bind="field"
-                type="password"
-                :label="t('oldPassword')"
-                outlined
-                dense
-                :error="m.touched && !!errorMessage"
-                :error-message="errorMessage"
-                :model-value="field.value"
-                @update:model-value="field.onChange"
-                @blur="field.onBlur"
-              />
-            </Field>
+        <q-separator inset v-if="userStore.loginType === 'google'" />
 
-            <Field name="newPassword" v-slot="{ field, errorMessage, meta: m }">
-              <q-input
-                v-bind="field"
-                type="password"
-                :label="t('newPassword')"
-                outlined
-                dense
-                :error="m.touched && !!errorMessage"
-                :error-message="errorMessage"
-                :model-value="field.value"
-                @update:model-value="field.onChange"
-                @blur="field.onBlur"
-              />
-            </Field>
+        <template v-if="userStore.loginType === 'google'">
+          <!-- 使用 col 讓此區塊填滿剩餘空間，搭配 flex-center 達成垂直置中 -->
+          <q-card-section class="col flex flex-center column">
+            <div class="text-h6 text-grey-9 q-mb-sm text-center">
+              {{ t('googleUserNoPassword') }}
+            </div>
+            <div class="text-subtitle1 text-grey-7 text-center">
+              {{ t('manageInGoogleAccount') }}
+            </div>
+          </q-card-section>
+        </template>
 
-            <Field name="confirmPassword" v-slot="{ field, errorMessage, meta: m }">
-              <q-input
-                v-bind="field"
-                type="password"
-                :label="t('confirmNewPassword')"
-                outlined
-                dense
-                :error="m.touched && !!errorMessage"
-                :error-message="errorMessage"
-                :model-value="field.value"
-                @update:model-value="field.onChange"
-                @blur="field.onBlur"
-              />
-            </Field>
+        <template v-else>
+          <q-card-section>
+            <div class="text-subtitle2 q-mb-md">{{ t('changePassword') }}</div>
           </q-card-section>
 
-          <q-card-actions align="right">
-            <q-btn
-              :label="t('changePassword')"
-              color="primary"
-              type="submit"
-              :disable="!meta.valid || loading"
-              :loading="loading"
-            />
-          </q-card-actions>
-        </VeeForm>
+          <VeeForm :validation-schema="schema" @submit="onSubmit" v-slot="{ meta }">
+            <q-card-section class="q-gutter-y-md">
+              <Field name="currentPassword" v-slot="{ field, errorMessage, meta: m }">
+                <q-input
+                  v-bind="field"
+                  type="password"
+                  :label="t('oldPassword')"
+                  outlined
+                  dense
+                  :error="m.touched && !!errorMessage"
+                  :error-message="errorMessage"
+                  :model-value="field.value"
+                  @update:model-value="field.onChange"
+                  @blur="field.onBlur"
+                />
+              </Field>
+
+              <Field name="newPassword" v-slot="{ field, errorMessage, meta: m }">
+                <q-input
+                  v-bind="field"
+                  type="password"
+                  :label="t('newPassword')"
+                  outlined
+                  dense
+                  :error="m.touched && !!errorMessage"
+                  :error-message="errorMessage"
+                  :model-value="field.value"
+                  @update:model-value="field.onChange"
+                  @blur="field.onBlur"
+                />
+              </Field>
+
+              <Field name="confirmPassword" v-slot="{ field, errorMessage, meta: m }">
+                <q-input
+                  v-bind="field"
+                  type="password"
+                  :label="t('confirmNewPassword')"
+                  outlined
+                  dense
+                  :error="m.touched && !!errorMessage"
+                  :error-message="errorMessage"
+                  :model-value="field.value"
+                  @update:model-value="field.onChange"
+                  @blur="field.onBlur"
+                />
+              </Field>
+            </q-card-section>
+
+            <q-card-actions align="right">
+              <q-btn
+                :label="t('changePassword')"
+                color="primary"
+                type="submit"
+                :disable="!meta.valid || loading"
+                :loading="loading"
+              />
+            </q-card-actions>
+          </VeeForm>
+        </template>
       </q-card>
     </div>
   </q-page>
@@ -72,6 +97,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useUserStore } from 'src/stores/userStore';
 import { Form as VeeForm, Field } from 'vee-validate';
 import { z } from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
@@ -81,6 +107,7 @@ import { useI18n } from 'vue-i18n';
 import type { AxiosError } from 'axios';
 
 const { t } = useI18n();
+const userStore = useUserStore();
 const loading = ref(false);
 
 const schema = computed(() =>

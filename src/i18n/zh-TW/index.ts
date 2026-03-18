@@ -109,4 +109,8 @@ export default {
   registerSuccess: '註冊成功！歡迎加入 🍉',
   registerFailed: '註冊失敗',
   pleaseConfirmPassword: '請再次輸入密碼',
+  connectingToServer: '⚠️ 正在嘗試連線伺服器，請稍候...',
+  serverConnected: '✅ 伺服器已連線',
+  googleUserNoPassword: '您是使用 Google 帳號登入',
+  manageInGoogleAccount: '請至 Google 帳號設定中管理您的安全性與密碼',
 };

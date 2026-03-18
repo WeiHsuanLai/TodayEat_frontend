@@ -15,7 +15,7 @@ import axios from 'axios';
 const $q = useQuasar();
 const router = useRouter();
 const userStore = useUserStore();
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 
 userStore.restore();
 
@@ -45,7 +45,7 @@ onMounted(async () => {
       dismissWakeUp = $q.notify({
         group: 'wake-up',
         type: 'info',
-        message: '⚠️ 正在嘗試連線伺服器，請稍候...',
+        message: t('connectingToServer'),
         timeout: 0,
         position: 'center',
       });
@@ -74,7 +74,7 @@ onMounted(async () => {
     (dismissWakeUp as () => void)();
     $q.notify({
       type: 'positive',
-      message: '✅ 伺服器已連線',
+      message: t('serverConnected'),
       timeout: 2000,
       position: 'center',
     });
@@ -90,10 +90,12 @@ onMounted(async () => {
       } as AxiosRequestConfig);
       const user = res.data.user;
 
-      // 如果 user.avatar 存在才用，否則維持原 avatar，不覆寫
+      // 確保 username 至少有值（優先順序：API 回傳的 account > API 回傳的 username > 目前 Store 裡的名稱）
+      const finalUsername = user.account || user.username || userStore.username;
+
       void userStore.setUser({
-        username: user.account,
-        role: user.role as number,
+        username: finalUsername,
+        role: user.role,
         avatar: user.avatar?.trim() || userStore.avatar,
         token: userStore.token,
       });

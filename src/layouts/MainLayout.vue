@@ -59,7 +59,16 @@
               <img :src="userStore.avatar" />
             </q-avatar>
 
-            <q-btn flat dense size="sm" color="white" ref="userBtnRef" icon-right="expand_more">
+            <q-btn
+              flat
+              dense
+              size="sm"
+              color="white"
+              ref="userBtnRef"
+              :label="userStore.username"
+              icon-right="expand_more"
+              class="q-ml-xs"
+            >
               <q-menu auto-close anchor="bottom right" self="top right">
                 <div class="flex wrap flex-center full-width" avatar>
                   <div class="menu-margin">
@@ -125,6 +134,53 @@
     <!-- 手機版側邊欄 -->
     <q-drawer v-model="leftDrawerOpen" side="right" bordered class="bg-grey-1 lt-sm">
       <q-list>
+        <!-- 手機版：已登入使用者區塊 -->
+        <template v-if="userStore.isLoggedIn">
+          <q-item class="bg-primary text-white q-py-lg">
+            <q-item-section avatar>
+              <q-avatar size="56px" class="bg-white q-pa-xs">
+                <img :src="userStore.avatar" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-h6 text-weight-bold">{{ userStore.username }}</q-item-label>
+              <q-item-label caption class="text-white opacity-80"
+                >UID: {{ userStore.username }}</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/setting" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="settings" />
+            </q-item-section>
+            <q-item-section>{{ t('userSettings') }}</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/FoodDrawHistory" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="history" />
+            </q-item-section>
+            <q-item-section>{{ t('foodDrawHistory') }}</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple to="/LoginHistory" @click="leftDrawerOpen = false">
+            <q-item-section avatar>
+              <q-icon name="login" />
+            </q-item-section>
+            <q-item-section>{{ t('loginHistory') }}</q-item-section>
+          </q-item>
+
+          <q-item clickable v-ripple @click="logout(); leftDrawerOpen = false" class="text-negative">
+            <q-item-section avatar>
+              <q-icon name="logout" color="negative" />
+            </q-item-section>
+            <q-item-section>{{ t('signout') }}</q-item-section>
+          </q-item>
+
+          <q-separator q-my-md />
+        </template>
+
         <q-item-label header class="text-weight-bold">{{ t('home') }}</q-item-label>
 
         <!-- 基本導覽 -->
@@ -248,12 +304,13 @@ watch(showLogin, (val) => {
   }
 });
 
-function handleLogin(data: { username: string; token: string; role: number; avatar: string }) {
+function handleLogin(data: { username: string; token: string; role: number; avatar: string; loginType: 'normal' | 'google' }) {
   void userStore.setUser({
     username: data.username,
     token: data.token,
     role: data.role,
     avatar: data.avatar,
+    loginType: data.loginType,
   });
   showLogin.value = false;
 

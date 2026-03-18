@@ -4,13 +4,20 @@ import { api } from './client';
 
 export interface User {
   account: string;
+  username?: string;
   email?: string;
   role: number | null;
   avatar: string;
+  token?: string;
 }
 
 export interface LoginResponse {
+  success: boolean;
+  message: string;
   token: string;
+  iat: string;
+  exp: string;
+  loginType: 'normal' | 'google';
   user: User;
 }
 

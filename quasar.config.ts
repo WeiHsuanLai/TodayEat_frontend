@@ -102,6 +102,9 @@ export default defineConfig((ctx) => {
     devServer: {
       // https: true,
       open: true, // opens browser window automatically
+      headers: {
+        'Cross-Origin-Opener-Policy': 'unsafe-none',
+      },
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

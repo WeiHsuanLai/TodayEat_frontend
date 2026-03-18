@@ -11,6 +11,7 @@ export const useUserStore = defineStore('user', {
     avatar: '', // 頭像網址
     token: '', // JWT 或其他登入憑證
     role: null as number | null, // 使用者權限
+    loginType: null as 'normal' | 'google' | null, // 登入類型
     showLoginModal: false,
     loginRedirectPath: '',
     pendingDraw: null as { meal: string; food: string } | null,
@@ -19,11 +20,12 @@ export const useUserStore = defineStore('user', {
   }),
   actions: {
     // 登入
-    login(username: string, token: string, role: number, avatar: string) {
+    login(username: string, token: string, role: number, avatar: string, loginType: 'normal' | 'google' = 'normal') {
       this.isLoggedIn = true;
       this.username = username;
       this.token = token;
       this.role = role;
+      this.loginType = loginType;
 
       // 處理頭像：若包含樣板字串 ${username} 則替換，否則使用預設值
       let finalAvatar = avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
@@ -41,6 +43,7 @@ export const useUserStore = defineStore('user', {
           token: this.token,
           role: this.role,
           isLoggedIn: this.isLoggedIn,
+          loginType: this.loginType,
         }),
       );
     },
@@ -58,8 +61,7 @@ export const useUserStore = defineStore('user', {
       // 清除 Google One Tap 快速登入記憶
       if (window.google?.accounts?.id) {
         window.google?.accounts?.id?.disableAutoSelect?.();
-        console.log('已清除 Google One Tap 快速登入記憶');
-
+        // console.log('已清除 Google One Tap 快速登入記憶');
       }
 
       // 無論如何都要清掉本地狀態
@@ -68,6 +70,7 @@ export const useUserStore = defineStore('user', {
       this.token = '';
       this.role = null;
       this.avatar = '';
+      this.loginType = null;
       this.pendingDraw = null;
       this.foodDrawToday = {
         breakfast: undefined,
@@ -107,13 +110,14 @@ export const useUserStore = defineStore('user', {
         this.username = user.username || 'User';
         this.token = user.token;
         this.role = typeof user.role === 'number' ? user.role : null;
+        this.loginType = user.loginType || 'normal';
         this.avatar =
           user.avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.username}`;
 
         // 判定登入狀態：只要有 token 就視為登入（後續 API 請求失敗會再由攔截器處理）
         this.isLoggedIn = Boolean(this.token);
 
-        console.log('[restore] 使用者狀態已還原:', this.username);
+        // console.log('[restore] 使用者狀態已還原:', this.username);
       } catch (err) {
         console.error('[restore] 解析 localStorage 失敗:', err);
         localStorage.removeItem('user');
@@ -121,24 +125,44 @@ export const useUserStore = defineStore('user', {
     },
 
     // 驗證成功後（例如透過 /user/getCurrentUser 拿回資料）更新使用者資訊
-    async setUser(user: { username: string; role: number; token?: string; avatar: string }) {
-      this.username = user.username;
-      this.role = user.role;
-
-      // 處理頭像：若包含樣板字串 ${username} 則替換，否則使用預設值
-      let finalAvatar = user.avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
-      if (finalAvatar.includes('${username}')) {
-        finalAvatar = finalAvatar.replace('${username}', user.username);
+    async setUser(user: {
+      username?: string;
+      role?: number | null;
+      token?: string;
+      avatar?: string;
+      loginType?: 'normal' | 'google';
+    }) {
+      // 🔍 診斷日誌：檢查資料完整性
+      if (!user.username && this.isLoggedIn) {
+        console.warn('[setUser] 偵測到不完整的資料更新！', {
+          received: user,
+          currentStore: { username: this.username, role: this.role }
+        });
       }
-      this.avatar = finalAvatar;
+
+      if (user.username) this.username = user.username;
+      if (user.role !== undefined) this.role = user.role;
+      if (user.loginType) this.loginType = user.loginType;
+
+      // 處理頭像：優先使用傳入的，若無則保留現有的或使用預設
+      if (user.avatar) {
+        let finalAvatar = user.avatar.trim();
+        if (finalAvatar.includes('${username}')) {
+          finalAvatar = finalAvatar.replace('${username}', this.username || 'User');
+        }
+        this.avatar = finalAvatar;
+      } else if (!this.avatar) {
+        this.avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.username || 'User'}`;
+      }
 
       this.isLoggedIn = true;
 
-      // 如果有新的 token 就更新，沒有就用原本的
-      if (user.token !== undefined) {
+      // 如果有新的 token 就更新
+      if (user.token) {
         this.token = user.token;
       }
 
+      // 同步到 localStorage
       localStorage.setItem(
         'user',
         JSON.stringify({
@@ -147,6 +171,7 @@ export const useUserStore = defineStore('user', {
           token: this.token,
           role: this.role,
           isLoggedIn: this.isLoggedIn,
+          loginType: this.loginType,
         }),
       );
 

@@ -169,18 +169,18 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
     return;
   }
   const credential = response.credential;
-  console.log('✅ Google JWT Token:', credential);
+  // console.log('✅ Google JWT Token:', credential);
 
   // 傳到後端驗證
   userApi
     .googleLogin({ token: credential })
     .then((res) => {
-      Notify.create({ type: 'positive', message: t('googleLoginSuccess') });
       emit('login', {
         username: res.data.user.account,
         token: res.data.token,
         role: res.data.user.role as number,
         avatar: res.data.user.avatar,
+        loginType: res.data.loginType,
       });
       show.value = false;
     })
@@ -215,7 +215,16 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'login', payload: { username: string; token: string; role: number; avatar: string }): void;
+  (
+    e: 'login',
+    payload: {
+      username: string;
+      token: string;
+      role: number;
+      avatar: string;
+      loginType: 'normal' | 'google';
+    },
+  ): void;
 }>();
 
 // api
@@ -275,7 +284,7 @@ watch(
         if (!(window as any)._gsiInited) {
           initGoogleSignIn();
         }
-        
+
         el.innerHTML = '';
         window.google.accounts.id.renderButton(el, {
           theme: 'outline',
@@ -311,7 +320,9 @@ const isAccountValid = computed(() =>
 // 密碼驗證規則
 const isPasswordValid = computed(() =>
   isPasswordRequired.value
-    ? z.string({ required_error: t('pleaseEnterPassword') }).min(4, { message: t('passwordTooShortLogin') })
+    ? z
+        .string({ required_error: t('pleaseEnterPassword') })
+        .min(4, { message: t('passwordTooShortLogin') })
     : z.string(),
 );
 
@@ -365,6 +376,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
       token: res.data.token,
       role: res.data.user.role as number,
       avatar: res.data.user.avatar,
+      loginType: res.data.loginType || 'normal',
     });
     show.value = false;
   } catch (err: unknown) {
