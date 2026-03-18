@@ -41,6 +41,12 @@ export default {
   pleaseConfirmNewPassword: 'Please confirm your new password',
   passwordsDoNotMatch: 'Passwords do not match',
   startYourCulinaryJourney: 'Start your culinary adventure and record every heartbeat meal!',
+  editRecord: 'Edit Record',
+  dishName: 'Dish Name',
+  note: 'Note',
+  saveSuccess: 'Saved successfully',
+  saveFailed: 'Failed to save, please try again later',
+  searchOnMap: 'Search on Map',
   // About Page
   aboutDescription: 'Solving the ultimate puzzle: "What to eat today?"\nWe create a fun and relaxed food-finding experience for everyone.',
   drawDesc: 'Let destiny decide your next meal! Spin the roulette and solve your dining dilemmas in a snap.',
