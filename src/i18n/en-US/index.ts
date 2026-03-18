@@ -20,7 +20,7 @@ export default {
   mapSearch: 'Map Search',
   adminPage: 'Admin Page',
   whatToEatToday: 'What to Eat Today',
-  inputDish: 'Input Dish',
+  manualInputDish: 'Manual Input Dish',
   selectCategory: 'Select Category',
   loadingCategories: 'Loading categories...',
   loadingDishes: 'Loading dishes...',

@@ -20,7 +20,7 @@ export default {
   mapSearch: '地圖搜尋',
   adminPage: '管理員頁面',
   whatToEatToday: '今天吃什麼',
-  inputDish: '輸入菜品',
+  manualInputDish: '手動輸入菜品',
   selectCategory: '選擇類別',
   loadingCategories: '載入類別中...',
   loadingDishes: '載入菜色中...',

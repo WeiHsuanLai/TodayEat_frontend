@@ -130,6 +130,7 @@
               :options="categories"
               dense
               outlined
+              behavior="menu"
               bg-color="white"
               @update:model-value="fetchDishesByCategory"
               :loading="loadingCategories"
@@ -175,7 +176,7 @@
 
             <!-- 手動輸入 -->
             <div class="q-mt-md">
-              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('inputDish') }}</div>
+              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('manualInputDish') }}</div>
               <div class="row q-gutter-sm no-wrap">
                 <q-input
                   v-model="prizeInput"
@@ -193,83 +194,103 @@
       </div>
     </div>
 
-    <!-- 手機版專用：底部選單彈窗 -->
-    <q-dialog v-model="showMobilePanel" position="bottom" class="lt-md">
-      <q-card
-        class="control-panel q-pa-lg no-border-radius-top"
-        style="max-height: 85vh; overflow-y: auto; width: 100%"
+    <!-- 手機版專用：底部抽屜 (Bottom Drawer) -->
+    <div class="bottom-drawer-wrapper lt-md" :class="{ active: showMobilePanel }">
+      <!-- 遮罩 -->
+      <transition name="fade">
+        <div v-if="showMobilePanel" class="drawer-backdrop" @click="showMobilePanel = false"></div>
+      </transition>
+
+      <!-- 抽屜本體 -->
+      <div
+        class="bottom-drawer shadow-10"
+        :style="{
+          transform: `translateY(${showMobilePanel ? panOffset : 100}%)`,
+          transition: isPanning ? 'none' : 'transform 0.4s cubic-bezier(0, 0, 0.2, 1)',
+        }"
       >
-        <!-- 頂部拉動視覺提示 -->
-        <div class="row justify-center q-mb-sm">
-          <div style="width: 40px; height: 4px; background: #e0e0e0; border-radius: 2px"></div>
+        <!-- 頂部拉動區域 (Handle Area) -->
+        <div class="drawer-handle-wrapper" v-touch-pan.vertical.prevent.mouse="handlePan">
+          <div class="drawer-handle"></div>
         </div>
 
-        <div class="row items-center justify-between q-mb-md">
-          <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
-          <q-btn icon="close" flat round dense v-close-popup />
-        </div>
+        <!-- 內容區 (使用 q-scroll-area 確保捲動條可見) -->
+        <q-scroll-area
+          class="drawer-content"
+          :thumb-style="{ right: '4px', borderRadius: '5px', background: '#ccc', width: '6px', opacity: '0.7' }"
+          :bar-style="{ right: '2px', borderRadius: '9px', background: '#f0f0f0', width: '10px', opacity: '0.2' }"
+        >
+          <div class="q-pa-md q-pb-xl">
+            <div class="row items-center justify-between q-mb-md">
+              <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
+              <q-btn icon="close" flat round dense @click="showMobilePanel = false" />
+            </div>
 
-        <div class="q-mb-md">
-          <q-select
-            v-model="selectedCategory"
-            :options="categories"
-            dense
-            outlined
-            bg-color="white"
-            @update:model-value="fetchDishesByCategory"
-            :loading="loadingCategories"
-            class="custom-input"
-          />
-        </div>
+            <!-- 手動輸入 (移至上方) -->
+            <div class="q-mb-lg">
+              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('manualInputDish') }}</div>
+              <div class="row q-gutter-sm no-wrap">
+                <q-input
+                  v-model="prizeInput"
+                  dense
+                  outlined
+                  bg-color="white"
+                  class="col custom-input"
+                  @keyup.enter="addPrize"
+                />
+                <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
+              </div>
+            </div>
 
-        <div class="dish-selector q-mb-lg">
-          <div v-if="fetchedDishes.length > 0" class="row q-gutter-sm">
-            <q-btn
-              v-for="dish in fetchedDishes"
-              :key="dish._id"
-              :label="dish.name"
-              unelevated
-              class="dish-btn text-weight-bold"
-              @click="addFromList(dish.name)"
-              :disable="prizes.includes(dish.name)"
-            />
-            <q-btn
-              v-if="fetchedDishes.length > 0"
-              :label="t('addAll')"
-              color="secondary"
-              unelevated
-              class="dish-btn text-weight-bold add-all-btn"
-              @click="addAllFetchedDishes"
-            />
-            <!-- 全部清除按鈕 -->
-            <q-btn
-              :label="t('clearAll')"
-              color="negative"
-              unelevated
-              class="dish-btn text-weight-bold"
-              @click="clearPrizes"
-            />
+            <q-separator class="q-mb-md" />
+
+            <!-- 分類選擇 -->
+            <div class="q-mt-md q-mb-md">
+              <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('selectCategory') }}</div>
+              <q-select
+                v-model="selectedCategory"
+                :options="categories"
+                dense
+                outlined
+                bg-color="white"
+                @update:model-value="fetchDishesByCategory"
+                :loading="loadingCategories"
+                class="custom-input"
+              />
+            </div>
+
+            <div class="dish-selector q-mb-lg">
+              <div v-if="fetchedDishes.length > 0" class="row q-gutter-sm">
+                <q-btn
+                  v-for="dish in fetchedDishes"
+                  :key="dish._id"
+                  :label="dish.name"
+                  unelevated
+                  class="dish-btn text-weight-bold"
+                  @click="addFromList(dish.name)"
+                  :disable="prizes.includes(dish.name)"
+                />
+                <q-btn
+                  v-if="fetchedDishes.length > 0"
+                  :label="t('addAll')"
+                  color="secondary"
+                  unelevated
+                  class="dish-btn text-weight-bold add-all-btn"
+                  @click="addAllFetchedDishes"
+                />
+                <q-btn
+                  :label="t('clearAll')"
+                  color="negative"
+                  unelevated
+                  class="dish-btn text-weight-bold"
+                  @click="clearPrizes"
+                />
+              </div>
+            </div>
           </div>
-        </div>
-
-        <q-separator class="q-mb-md" />
-
-        <div class="q-mt-md">
-          <div class="text-subtitle2 q-mb-sm text-grey-7">{{ t('inputDish') }}</div>
-          <div class="row q-gutter-sm no-wrap">
-            <q-input
-              v-model="prizeInput"
-              dense
-              outlined
-              bg-color="white"
-              class="col custom-input"
-              @keyup.enter="addPrize"
-            />
-            <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
-          </div>
-        </div>
-      </q-card>
-    </q-dialog>
+        </q-scroll-area>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -294,7 +315,56 @@ const winner = ref<string | null>(null);
 const isDrawing = ref(false);
 const isSaving = ref(false);
 const currentIndex = ref<number>(-1);
-const showMobilePanel = ref(false); // 控制手機版彈窗顯示
+const showMobilePanel = ref(false); // 控制手機版抽屜顯示
+
+// 手勢處理 (底部抽屜)
+const panOffset = ref(100); // 預設隱藏在 100%
+const baseOffset = ref(100);
+const isPanning = ref(false);
+
+// 監聽抽屜開啟狀態，鎖定背景捲動防止穿透
+watch(showMobilePanel, (val) => {
+  if (val) {
+    document.body.style.overflow = 'hidden';
+    // 打開時預設顯示在 30% 位置 (露出 70% 內容)
+    baseOffset.value = 30;
+    panOffset.value = 30;
+  } else {
+    document.body.style.overflow = '';
+    baseOffset.value = 100;
+    panOffset.value = 100;
+  }
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function handlePan(details: any) {
+  // 使用視窗高度作為基準
+  const height = window.innerHeight;
+
+  if (details.isFirst) {
+    isPanning.value = true;
+  }
+
+  // 計算當前位置 = 上次停下的位置 + 這次移動的百分比
+  let currentOffset = baseOffset.value + (details.offset?.y / height) * 100;
+
+  // 限制範圍：0 (最頂) 到 100 (最底)
+  currentOffset = Math.max(0, Math.min(100, currentOffset));
+
+  panOffset.value = currentOffset;
+
+  if (details.isFinal) {
+    isPanning.value = false;
+
+    // 如果下拉超過 85% 則自動收進並關閉
+    if (panOffset.value > 85) {
+      showMobilePanel.value = false;
+    } else {
+      // 否則懸停在當前位置
+      baseOffset.value = panOffset.value;
+    }
+  }
+}
 
 // API 相關資料
 const categories = ref<string[]>([]);
@@ -656,12 +726,15 @@ async function saveRecord(note: string) {
   display: flex;
   flex-direction: column;
 }
-
 .dish-selector {
   flex-grow: 1;
+  padding: 4px;
+}
+
+/* 僅在桌面版 (gt-sm) 限制菜色選單高度 */
+.gt-sm .dish-selector {
   max-height: 400px;
   overflow-y: auto;
-  padding: 4px;
 }
 
 .dish-btn {
@@ -723,6 +796,100 @@ async function saveRecord(note: string) {
 .scale-enter-from,
 .scale-leave-to {
   transform: scale(0.8);
+  opacity: 0;
+}
+
+/* 底部抽屜樣式 */
+.bottom-drawer-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.bottom-drawer-wrapper.active {
+  pointer-events: all;
+}
+
+.drawer-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: all;
+  will-change: opacity;
+}
+
+.bottom-drawer {
+  position: relative;
+  background: white;
+  width: 100%;
+  height: 100vh; /* 改為 100vh 以確保全螢幕拉動不截斷 */
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.drawer-handle-wrapper {
+  width: 100%;
+  padding: 12px 0 16px;
+  display: flex;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drawer-handle-wrapper:active {
+  cursor: grabbing;
+}
+
+.drawer-handle {
+  width: 40px;
+  height: 5px;
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 自定義捲動條樣式 (更細緻) */
+.drawer-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.drawer-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer-content::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 10px;
+}
+
+.drawer-content::-webkit-scrollbar-thumb:hover {
+  background: #bdbdbd;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>
