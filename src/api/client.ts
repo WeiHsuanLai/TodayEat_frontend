@@ -2,6 +2,8 @@
 import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { Notify } from 'quasar';
+import { unref } from 'vue';
+import { i18n } from 'src/boot/i18n';
 
 declare module 'axios' {
   export interface InternalAxiosRequestConfig {
@@ -39,8 +41,13 @@ api.interceptors.request.use((config) => {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // 動態設定 Accept-Language 標頭
+    const localeStr = unref(i18n.global.locale);
+    const backendLang = String(localeStr).startsWith('zh') ? 'zh' : 'en';
+    config.headers['Accept-Language'] = backendLang;
   } catch (e) {
-    console.warn('[Axios interceptor] localStorage token 解析失敗', e);
+    console.warn('[Axios interceptor] 設定請求標頭失敗', e);
   }
   return config;
 });

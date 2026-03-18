@@ -491,7 +491,7 @@ function promptForNoteAndSave() {
   if (!userStore.isLoggedIn) {
     $q.notify({
       type: 'warning',
-      message: '請先登入後再儲存紀錄',
+      message: t('pleaseLoginToSave'),
       position: 'center',
     });
     userStore.showLoginModal = true;
@@ -501,12 +501,12 @@ function promptForNoteAndSave() {
   }
 
   $q.dialog({
-    title: '儲存推薦',
-    message: `您抽中了「${winner.value}」，想加點備註嗎？`,
+    title: t('saveRecommendation'),
+    message: t('saveRecommendationMsg', { winner: winner.value }),
     prompt: {
       model: '',
       type: 'text',
-      placeholder: '例如：店名',
+      placeholder: t('notePlaceholder'),
     },
     cancel: true,
     persistent: true,
@@ -526,14 +526,14 @@ async function saveRecord(note: string) {
     });
     $q.notify({
       type: 'positive',
-      message: '推薦紀錄已儲存',
+      message: t('recordSaved'),
       position: 'center',
     });
   } catch (error) {
     console.error('儲存紀錄失敗:', error);
     $q.notify({
       type: 'negative',
-      message: '儲存失敗，請稍後再試',
+      message: t('recordSaveFailed'),
       position: 'center',
     });
   } finally {

@@ -4,7 +4,7 @@
     <q-card style="min-width: 380px; min-height: 200px; max-height: 90vh; overflow: hidden">
       <template v-if="!isResetMode">
         <q-card-section>
-          <div class="text-h6">登入</div>
+          <div class="text-h6">{{ t('loginTitle') }}</div>
         </q-card-section>
         <VeeForm :validation-schema="schema" :onSubmit="onSubmit">
           <q-card-section>
@@ -14,7 +14,7 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                :label="fieldMeta.touched && errorMessage ? errorMessage : '帳號'"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : t('account')"
                 outlined
                 dense
                 :error="fieldMeta.touched && !!errorMessage"
@@ -28,7 +28,7 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                :label="fieldMeta.touched && errorMessage ? errorMessage : '密碼'"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : t('password')"
                 outlined
                 dense
                 :error="fieldMeta.touched && !!errorMessage"
@@ -42,7 +42,7 @@
                   @update:model-value="field.onChange"
                   @blur="field.onBlur"
                   :name="field.name"
-                  :label="fieldMeta.touched && errorMessage ? errorMessage : '驗證碼'"
+                  :label="fieldMeta.touched && errorMessage ? errorMessage : t('captcha')"
                   outlined
                   dense
                   :error="fieldMeta.touched && !!errorMessage"
@@ -59,7 +59,7 @@
                     border-radius: 4px;
                     display: block;
                   "
-                  alt="驗證碼圖片"
+                  :alt="t('captchaAlt')"
                 />
                 <q-btn
                   dense
@@ -68,7 +68,7 @@
                   icon="refresh"
                   size="lg"
                   @click="refreshCaptcha"
-                  aria-label="刷新驗證碼"
+                  :aria-label="t('refreshCaptcha')"
                   class="q-mt-xs"
                 />
               </div>
@@ -76,11 +76,11 @@
           </q-card-section>
           <q-card-actions align="between" class="q-px-md">
             <q-btn flat color="primary" @click="toggleResetMode">
-              {{ '忘記密碼？' }}
+              {{ t('forgotPassword') }}
             </q-btn>
             <div class="row q-gutter-x-sm">
-              <q-btn flat label="取消" color="primary" @click="show = false" />
-              <q-btn type="submit" label="登入" color="primary" />
+              <q-btn flat :label="t('cancel')" color="primary" @click="show = false" />
+              <q-btn type="submit" :label="t('login')" color="primary" />
             </div>
           </q-card-actions>
           <div
@@ -92,7 +92,7 @@
       </template>
       <template v-else>
         <q-card-section>
-          <div class="text-h6">忘記密碼</div>
+          <div class="text-h6">{{ t('forgotPasswordTitle') }}</div>
         </q-card-section>
         <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
           <q-card-section>
@@ -103,7 +103,7 @@
                 @update:model-value="field.onChange"
                 @blur="field.onBlur"
                 :name="field.name"
-                :label="fieldMeta.touched && errorMessage ? errorMessage : '電子郵件'"
+                :label="fieldMeta.touched && errorMessage ? errorMessage : t('email')"
                 outlined
                 dense
                 :error="fieldMeta.touched && !!errorMessage"
@@ -113,9 +113,9 @@
 
           <q-card-actions align="between">
             <q-btn flat color="primary" @click="toggleResetMode">
-              {{ '返回登入' }}
+              {{ t('backToLogin') }}
             </q-btn>
-            <q-btn type="submit" label="確定" color="primary" :disable="!meta.valid" />
+            <q-btn type="submit" :label="t('confirm')" color="primary" :disable="!meta.valid" />
           </q-card-actions>
         </VeeForm>
       </template>
@@ -125,11 +125,14 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { userApi } from 'src/api';
 import { Notify } from 'quasar';
 import z from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
+
+const { t } = useI18n();
 const form = useForm();
 form.resetForm({
   values: {
@@ -162,7 +165,7 @@ function loadGoogleScript(): Promise<void> {
 
 function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
   if (!response || !response.credential) {
-    Notify.create({ type: 'negative', message: 'Google 登入失敗，請稍後再試' });
+    Notify.create({ type: 'negative', message: t('googleLoginFailed') });
     return;
   }
   const credential = response.credential;
@@ -172,7 +175,7 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
   userApi
     .googleLogin({ token: credential })
     .then((res) => {
-      Notify.create({ type: 'positive', message: 'Google 登入成功' });
+      Notify.create({ type: 'positive', message: t('googleLoginSuccess') });
       emit('login', {
         username: res.data.user.account,
         token: res.data.token,
@@ -182,7 +185,7 @@ function handleGoogleLogin(response: google.accounts.id.CredentialResponse) {
       show.value = false;
     })
     .catch((err) => {
-      Notify.create({ type: 'negative', message: 'Google 登入失敗' });
+      Notify.create({ type: 'negative', message: t('googleLoginFailed') });
       console.error(err);
     });
 }
@@ -291,7 +294,7 @@ const isAccountRequired = computed(() => !isResetMode.value);
 const isPasswordRequired = computed(() => !isResetMode.value);
 const isEmailValid = computed(() =>
   isResetMode.value
-    ? z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件')
+    ? z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail'))
     : z.string(),
 );
 
@@ -299,22 +302,22 @@ const isEmailValid = computed(() =>
 const isAccountValid = computed(() =>
   isAccountRequired.value
     ? z
-        .string({ required_error: '請輸入帳號' })
-        .nonempty('請輸入帳號')
-        .min(4, { message: '帳號至少 4 碼' })
+        .string({ required_error: t('pleaseEnterAccount') })
+        .nonempty(t('pleaseEnterAccount'))
+        .min(4, { message: t('accountTooShort') })
     : z.string(),
 );
 
 // 密碼驗證規則
 const isPasswordValid = computed(() =>
   isPasswordRequired.value
-    ? z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' })
+    ? z.string({ required_error: t('pleaseEnterPassword') }).min(4, { message: t('passwordTooShortLogin') })
     : z.string(),
 );
 
 // 驗證碼驗證規則
 const isCaptchaRequired = computed(() =>
-  z.string({ required_error: '請輸入驗證碼' }).nonempty('請輸入驗證碼'),
+  z.string({ required_error: t('pleaseEnterCaptcha') }).nonempty(t('pleaseEnterCaptcha')),
 );
 
 const schema = computed(() =>
@@ -352,7 +355,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
 
     Notify.create({
       type: 'positive',
-      message: '登入成功',
+      message: t('loginSuccess'),
       position: 'center',
       timeout: 1500,
     });
@@ -388,7 +391,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
     } else {
       Notify.create({
         type: 'negative',
-        message: '發生未知錯誤',
+        message: t('unknownError'),
       });
       console.error('登入失敗:', err);
     }

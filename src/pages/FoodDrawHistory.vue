@@ -30,7 +30,7 @@
               v-model="filter"
               dense
               outlined
-              placeholder="搜尋餐點或備註..."
+              :placeholder="t('searchHistoryPlaceholder')"
               class="q-ml-md"
               bg-color="white"
             >
@@ -52,7 +52,7 @@
           <template v-slot:body-cell-note="props">
             <q-td :props="props">
               <span v-if="props.value" class="text-body2">{{ props.value }}</span>
-              <span v-else class="text-caption text-grey-4">無備註</span>
+              <span v-else class="text-caption text-grey-4">{{ t('noNote') }}</span>
             </q-td>
           </template>
 
@@ -68,7 +68,7 @@
                 @click="openEditDialog(props.row)"
                 class="q-mr-xs"
               >
-                <q-tooltip>編輯紀錄</q-tooltip>
+                <q-tooltip>{{ t('editRecordTooltip') }}</q-tooltip>
               </q-btn>
               <q-btn
                 flat
@@ -89,7 +89,7 @@
                 size="sm"
                 @click="confirmDelete(props.row)"
               >
-                <q-tooltip>刪除紀錄</q-tooltip>
+                <q-tooltip>{{ t('deleteRecordTooltip') }}</q-tooltip>
               </q-btn>
             </q-td>
           </template>
@@ -144,10 +144,10 @@
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary q-pa-md">
-          <q-btn flat label="取消" v-close-popup color="grey-7" />
+          <q-btn flat :label="t('cancel')" v-close-popup color="grey-7" />
           <q-btn
             unelevated
-            label="儲存修改"
+            :label="t('saveChanges')"
             color="primary"
             @click="handleSaveEdit"
             :loading="editDialog.loading"
@@ -193,34 +193,34 @@ const pagination = ref({
   rowsPerPage: 10,
 });
 
-const columns = [
+const columns = computed(() => [
   {
     name: 'createdAt',
-    label: '日期/時間',
+    label: t('dateTime'),
     field: 'createdAt',
     align: 'left' as const,
     sortable: true,
   },
   {
     name: 'dishName',
-    label: '推薦餐點',
+    label: t('recommendedDish'),
     field: 'dishName',
     align: 'left' as const,
     sortable: true,
   },
   {
     name: 'note',
-    label: '備註',
+    label: t('note'),
     field: 'note',
     align: 'left' as const,
   },
   {
     name: 'actions',
-    label: '操作',
+    label: t('actions'),
     field: 'actions',
     align: 'center' as const,
   },
-];
+]);
 
 // 將 API 回傳的分組資料攤平成一維陣列供 q-table 使用
 const tableRows = computed(() => {
@@ -308,17 +308,17 @@ async function handleSaveEdit() {
 
 function confirmDelete(record: FoodRecord) {
   $q.dialog({
-    title: '確認刪除',
-    message: `您確定要刪除「${record.dishName}」這筆推薦紀錄嗎？`,
+    title: t('confirmDelete'),
+    message: t('deleteConfirmationMsg', { dishName: record.dishName }),
     cancel: {
       flat: true,
       color: 'grey-8',
-      label: '取消',
+      label: t('cancel'),
     },
     ok: {
       unelevated: true,
       color: 'negative',
-      label: '刪除',
+      label: t('delete'),
     },
     persistent: true,
   }).onOk(() => {
@@ -327,7 +327,7 @@ function confirmDelete(record: FoodRecord) {
         await foodApi.deleteFoodRecord(record._id);
         $q.notify({
           type: 'positive',
-          message: '紀錄已成功刪除',
+          message: t('recordDeleted'),
           position: 'center',
         });
         await fetchHistory(); // 重新整理列表
@@ -335,7 +335,7 @@ function confirmDelete(record: FoodRecord) {
         console.error('刪除失敗:', error);
         $q.notify({
           type: 'negative',
-          message: '刪除失敗，請稍後再試',
+          message: t('recordDeleteFailed'),
           position: 'center',
         });
       }

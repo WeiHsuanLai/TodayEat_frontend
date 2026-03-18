@@ -1,17 +1,6 @@
 // src/api/food.ts
-import { unref } from 'vue';
-import { i18n } from 'src/boot/i18n';
 import { api } from './client';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-
-/**
- * 獲取當前 API 要求的語系代碼 (zh 或 en)
- */
-function getApiLng() {
-  // 使用 unref 安全地獲取 i18n.global.locale 的值 (不論是 ref 或字串)
-  const lang = unref(i18n.global.locale) as string;
-  return lang.startsWith('zh') ? 'zh' : 'en';
-}
 
 export interface PrizeItem {
   label: string;
@@ -54,7 +43,7 @@ export const foodApi = {
    * 獲取所有菜色類別
    */
   getCategories() {
-    return api.get<ApiResponse<string[]>>(`/dishes/categories?lng=${getApiLng()}`);
+    return api.get<ApiResponse<string[]>>('/dishes/categories');
   },
 
   /**
@@ -69,7 +58,7 @@ export const foodApi = {
       categoryStr = category;
     } else if (category && typeof category === 'object') {
       // 嘗試從常見的屬性中取出字串值
-      const val = category.name || category.label || category.value;
+      const val = category['name'] || category['label'] || category['value'];
       categoryStr = typeof val === 'string' ? val : '';
     } else {
       categoryStr = category ? String(category) : '';
@@ -87,14 +76,14 @@ export const foodApi = {
     }
 
     const encodedCategory = encodeURIComponent(categoryStr);
-    return api.get<ApiResponse<Dish[]>>(`/dishes?category=${encodedCategory}&lng=${getApiLng()}`);
+    return api.get<ApiResponse<Dish[]>>(`/dishes?category=${encodedCategory}`);
   },
 
   /**
    * 獲取今日抽取記錄
    */
   getTodayDraws() {
-    return api.get<TodayDrawsResponse>(`/record/food-draw/today?lng=${getApiLng()}`);
+    return api.get<TodayDrawsResponse>('/record/food-draw/today');
   },
 
   /**
@@ -115,7 +104,7 @@ export const foodApi = {
    * 獲取使用者的歷史抽取紀錄
    */
   getMyFoodRecords() {
-    return api.get<MyFoodRecordsResponse>(`/food-records/my?lng=${getApiLng()}`);
+    return api.get<MyFoodRecordsResponse>('/food-records/my');
   },
 
   /**
@@ -138,6 +127,6 @@ export const foodApi = {
    */
   getPrizes(isLoggedIn: boolean) {
     const endpoint = isLoggedIn ? '/user/custom-items' : '/prizes';
-    return api.get<PrizeItem[]>(`${endpoint}?lng=${getApiLng()}`);
+    return api.get<PrizeItem[]>(endpoint);
   }
 };

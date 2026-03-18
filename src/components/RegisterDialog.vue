@@ -3,14 +3,14 @@
   <q-dialog v-model="show" persistent>
     <q-card style="min-width: 350px">
       <q-card-section>
-        <div class="text-h6">註冊</div>
+        <div class="text-h6">{{ t('registerTitle') }}</div>
       </q-card-section>
 
       <VeeForm :validation-schema="schema" :onSubmit="onSubmit" v-slot="{ meta }">
         <q-card-section>
           <Field name="account" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              :label="m.touched && errorMessage ? errorMessage : '帳號'"
+              :label="m.touched && errorMessage ? errorMessage : t('account')"
               outlined
               dense
               autofocus
@@ -23,7 +23,7 @@
 
           <Field name="email" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              :label="m.touched && errorMessage ? errorMessage : '電子郵件'"
+              :label="m.touched && errorMessage ? errorMessage : t('email')"
               outlined
               dense
               type="email"
@@ -36,7 +36,7 @@
 
           <Field name="password" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              :label="m.touched && errorMessage ? errorMessage : '密碼'"
+              :label="m.touched && errorMessage ? errorMessage : t('password')"
               outlined
               dense
               type="password"
@@ -49,7 +49,7 @@
 
           <Field name="confirmPassword" v-slot="{ field, errorMessage, meta: m }">
             <q-input
-              :label="m.touched && errorMessage ? errorMessage : '確認密碼'"
+              :label="m.touched && errorMessage ? errorMessage : t('confirmPassword')"
               outlined
               dense
               type="password"
@@ -62,8 +62,8 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="取消" color="primary" @click="show = false" />
-          <q-btn type="submit" label="註冊" color="primary" :disable="!meta.valid" />
+          <q-btn flat :label="t('cancel')" color="primary" @click="show = false" />
+          <q-btn type="submit" :label="t('registerTitle')" color="primary" :disable="!meta.valid" />
         </q-card-actions>
       </VeeForm>
     </q-card>
@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
 import { userApi } from 'src/api';
 import { useUserStore } from 'src/stores/userStore';
@@ -79,6 +80,8 @@ import type { AxiosError } from 'axios';
 import { Notify } from 'quasar';
 import { z } from 'zod';
 import { toTypedSchema } from '@vee-validate/zod';
+
+const { t } = useI18n();
 
 interface RegisterForm {
   account: string;
@@ -134,25 +137,25 @@ const isConfirmPasswordRequired = computed(() => true);
 const accountSchema = computed(() =>
   isAccountRequired.value
     ? z
-        .string({ required_error: '請輸入帳號' })
-        .nonempty('請輸入帳號')
-        .min(4, { message: '帳號至少 4 碼' })
+        .string({ required_error: t('pleaseEnterAccount') })
+        .nonempty(t('pleaseEnterAccount'))
+        .min(4, { message: t('accountTooShort') })
     : z.string().optional(),
 );
 
 const emailSchema = computed(() =>
-  z.string({ required_error: '請輸入電子郵件' }).email('請輸入有效的電子郵件'),
+  z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail')),
 );
 
 const passwordSchema = computed(() =>
   isPasswordRequired.value
-    ? z.string({ required_error: '請輸入密碼' }).min(4, { message: '密碼至少 4 碼' })
+    ? z.string({ required_error: t('pleaseEnterPassword') }).min(4, { message: t('passwordTooShortLogin') })
     : z.string().optional(),
 );
 
 const confirmPasswordSchema = computed(() =>
   isConfirmPasswordRequired.value
-    ? z.string({ required_error: '請再次輸入密碼' }).nonempty('請再次輸入密碼')
+    ? z.string({ required_error: t('pleaseConfirmPassword') }).nonempty(t('pleaseConfirmPassword'))
     : z.string().optional(),
 );
 
@@ -174,7 +177,7 @@ const schema = computed(() =>
         ) {
           ctx.addIssue({
             path: ['confirmPassword'],
-            message: '密碼不一致',
+            message: t('passwordsDoNotMatch'),
             code: z.ZodIssueCode.custom,
           });
         }
@@ -198,7 +201,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
 
     Notify.create({
       type: 'positive',
-      message: '註冊成功！歡迎加入 🍉',
+      message: t('registerSuccess'),
       position: 'center',
       timeout: 1500,
     });
@@ -215,7 +218,7 @@ const onSubmit = async (values: Record<string, unknown>) => {
     } else {
       Notify.create({
         type: 'negative',
-        message: data?.message || '註冊失敗',
+        message: data?.message || t('registerFailed'),
         position: 'center',
       });
     }
