@@ -1,9 +1,9 @@
 <!-- src/components/GridLottery.vue - 九宮格抽獎元件 -->
 <template>
-  <div class="lottery-container q-pa-lg">
-    <div class="row q-col-gutter-xl items-center justify-center" style="min-height: 80vh">
+  <div class="lottery-container q-pa-lg flex flex-center">
+    <div class="row q-col-gutter-xl items-center justify-center full-width" style="min-height: 80vh">
       <!-- 左側：九宮格抽獎區 -->
-      <div class="col-12 col-md-6 column items-center">
+      <div class="col-12 col-md-auto column items-center q-pa-md">
         <h3 class="text-h5 q-mb-lg text-weight-bold text-center">{{ t('whatToEatToday') }}</h3>
 
         <!-- 九宮格 (動態 N x N) -->
@@ -32,68 +32,76 @@
         </div>
 
         <!-- 底部按鈕與結果 -->
-        <div class="column items-center q-mt-xl full-width">
-          <div class="row q-gutter-md">
-            <q-btn
-              :label="t('start')"
-              color="accent"
-              size="lg"
-              unelevated
-              rounded
-              padding="12px 60px"
-              @click="startDraw"
-              :disable="isDrawing || prizes.length < 2"
-              class="start-btn"
-            />
-            <!-- 手機版專用：喚起選單按鈕 -->
-            <q-btn
-              icon="tune"
-              color="primary"
-              flat
-              round
-              size="lg"
-              class="lt-md"
-              @click="showMobilePanel = true"
-            >
-              <q-tooltip>{{ t('selectCategory') }}</q-tooltip>
-            </q-btn>
+        <div class="column items-center q-mt-md full-width">
+          <!-- 第一排：開始按鈕與結果展示 -->
+          <div :class="$q.screen.lt.md ? 'column q-gutter-y-md' : 'row items-center q-gutter-md no-wrap q-mb-md'">
+            <div class="row items-center q-gutter-sm no-wrap justify-center">
+              <q-btn
+                :label="t('start')"
+                color="accent"
+                :size="$q.screen.lt.md ? 'md' : 'lg'"
+                unelevated
+                rounded
+                :padding="$q.screen.lt.md ? '10px 30px' : '12px 40px'"
+                @click="startDraw"
+                :disable="isDrawing || prizes.length < 2"
+                class="start-btn"
+              />
+
+              <!-- 手機版專用：喚起選單按鈕 (放於開始按鈕旁) -->
+              <q-btn
+                icon="tune"
+                color="primary"
+                flat
+                round
+                :size="$q.screen.lt.md ? 'md' : 'lg'"
+                class="lt-md"
+                @click="showMobilePanel = true"
+              >
+                <q-tooltip>{{ t('selectCategory') }}</q-tooltip>
+              </q-btn>
+            </div>
+
+            <!-- 今日推薦展示區 -->
+            <div class="result-banner text-weight-bold row items-center no-wrap" :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem;' : ''">
+              <span class="q-mr-xs text-no-wrap">🎉 {{ t('todayRecommended') }}：</span>
+              <span class="text-primary text-weight-bolder" :class="$q.screen.lt.md ? 'text-h6' : 'text-h5'" style="min-width: 60px; text-align: center">
+                {{ winner || '???' }}
+              </span>
+            </div>
           </div>
 
-          <transition name="scale">
-            <div v-if="winner !== null" class="column items-center q-mt-lg">
-              <div class="result-banner text-h6 text-weight-bold">
-                🎉 {{ t('todayRecommended') }}：<span class="text-primary text-h5">{{
-                  winner
-                }}</span>
-              </div>
-              <div class="row q-gutter-sm q-mt-md">
-                <q-btn
-                  v-if="!isDrawing"
-                  :label="t('startDraw') === '立即開始' ? '儲存紀錄' : 'Save Record'"
-                  color="primary"
-                  unelevated
-                  rounded
-                  icon="save"
-                  :loading="isSaving"
-                  @click="promptForNoteAndSave"
-                />
-                <q-btn
-                  v-if="!isDrawing"
-                  :label="t('searchOnMap')"
-                  color="secondary"
-                  unelevated
-                  rounded
-                  icon="map"
-                  @click="goToMapSearch"
-                />
-              </div>
-            </div>
-          </transition>
+          <!-- 第二排：操作按鈕 -->
+          <div class="row q-gutter-sm justify-center q-mt-sm">
+            <q-btn
+              :label="t('saveRecommendation')"
+              color="primary"
+              unelevated
+              rounded
+              icon="save"
+              :loading="isSaving"
+              @click="promptForNoteAndSave"
+              :padding="$q.screen.lt.md ? '6px 16px' : '8px 20px'"
+              :size="$q.screen.lt.md ? 'sm' : 'md'"
+              :disable="!winner || isDrawing"
+            />
+            <q-btn
+              :label="t('searchOnMap')"
+              color="secondary"
+              unelevated
+              rounded
+              icon="map"
+              @click="goToMapSearch"
+              :padding="$q.screen.lt.md ? '6px 16px' : '8px 20px'"
+              :size="$q.screen.lt.md ? 'sm' : 'md'"
+              :disable="!winner || isDrawing"
+            />
+          </div>
         </div>
       </div>
 
       <!-- 右側：控制與選菜面板 (僅在桌面端顯示) -->
-      <div class="col-12 col-md-6 column items-center gt-sm">
+      <div class="col-12 col-md-auto column items-center gt-sm q-pa-md">
         <q-card flat bordered class="control-panel q-pa-lg shadow-1">
           <slot name="control-content">
             <div class="text-subtitle1 text-weight-bold q-mb-md text-primary">
@@ -133,6 +141,14 @@
                   class="dish-btn text-weight-bold add-all-btn"
                   @click="addAllFetchedDishes"
                 />
+                <!-- 全部清除按鈕 -->
+                <q-btn
+                  :label="t('clearAll')"
+                  color="negative"
+                  unelevated
+                  class="dish-btn text-weight-bold"
+                  @click="clearPrizes"
+                />
               </div>
               <div v-else-if="!loadingDishes" class="text-caption text-grey-6 text-center q-pa-md">
                 {{ selectedCategory ? '此分類暫無菜色' : '請先選擇一個類別' }}
@@ -156,15 +172,6 @@
                 <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
               </div>
             </div>
-
-            <q-btn
-              :label="t('clear')"
-              flat
-              color="negative"
-              class="full-width q-mt-xl rounded-btn"
-              @click="clearPrizes"
-              icon="delete_outline"
-            />
           </slot>
         </q-card>
       </div>
@@ -172,7 +179,12 @@
 
     <!-- 手機版專用：底部選單彈窗 -->
     <q-dialog v-model="showMobilePanel" position="bottom" class="lt-md">
-      <q-card class="control-panel q-pa-lg no-border-radius-top" style="max-height: 80vh">
+      <q-card class="control-panel q-pa-lg no-border-radius-top" style="max-height: 85vh; overflow-y: auto; width: 100%">
+        <!-- 頂部拉動視覺提示 -->
+        <div class="row justify-center q-mb-sm">
+          <div style="width: 40px; height: 4px; background: #e0e0e0; border-radius: 2px"></div>
+        </div>
+        
         <div class="row items-center justify-between q-mb-md">
           <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
           <q-btn icon="close" flat round dense v-close-popup />
@@ -210,6 +222,14 @@
               class="dish-btn text-weight-bold add-all-btn"
               @click="addAllFetchedDishes"
             />
+            <!-- 全部清除按鈕 -->
+            <q-btn
+              :label="t('clearAll')"
+              color="negative"
+              unelevated
+              class="dish-btn text-weight-bold"
+              @click="clearPrizes"
+            />
           </div>
         </div>
 
@@ -229,15 +249,6 @@
             <q-btn icon="add" color="primary" unelevated @click="addPrize" class="add-btn" />
           </div>
         </div>
-
-        <q-btn
-          :label="t('clear')"
-          flat
-          color="negative"
-          class="full-width q-mt-md rounded-btn"
-          @click="clearPrizes"
-          icon="delete_outline"
-        />
       </q-card>
     </q-dialog>
   </div>
@@ -419,26 +430,37 @@ const displayPrizes = computed(() => {
   return res;
 });
 
-const gridContainerStyle = computed(() => ({
-  width: '100%',
-  maxWidth: '350px',
-  minHeight: '350px',
-}));
+const gridContainerStyle = computed(() => {
+  // 偵測是否為手機版 (簡單判斷)
+  const isMobile = $q.screen.lt.md;
+  const size = isMobile ? '320px' : '450px';
+  return {
+    width: size,
+    height: size,
+  };
+});
 
 const itemStyle = computed(() => {
   const n = gridSize.value;
-  let fontSize = '1rem';
-  if (n === 4) fontSize = '0.85rem';
-  if (n >= 5) fontSize = '0.75rem';
+  const isMobile = $q.screen.lt.md;
+  
+  let fontSize = isMobile ? '1rem' : '1.25rem';
+  if (n === 4) fontSize = isMobile ? '0.85rem' : '1rem';
+  if (n >= 5) fontSize = isMobile ? '0.7rem' : '0.85rem';
+  
   return {
     fontSize,
+    height: '100%',
   };
 });
 
 const gridStyle = computed(() => ({
+  display: 'grid',
   gridTemplateColumns: `repeat(${gridSize.value}, 1fr)`,
+  gridTemplateRows: `repeat(${gridSize.value}, 1fr)`,
   gap: '10px',
   width: '100%',
+  height: '100%',
 }));
 
 // 抽獎邏輯
@@ -566,12 +588,13 @@ async function saveRecord(note: string) {
   aspect-ratio: 1/1;
   transition:
     background-color 0.2s ease,
-    transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    transform 0.1s ease,
     box-shadow 0.2s ease,
     color 0.2s ease;
   text-align: center;
   padding: 8px;
   word-break: break-all;
+  flex-shrink: 0;
 }
 
 .grid-item.empty {
@@ -591,13 +614,14 @@ async function saveRecord(note: string) {
 
 .remove-btn {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -10px;
+  right: -10px;
   background: #ff5252;
   color: white !important;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 5;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .grid-item:hover .remove-btn {
@@ -608,9 +632,9 @@ async function saveRecord(note: string) {
   border-radius: 20px;
   background: #ffffff;
   border: 2px solid #f5f5f5;
-  width: 100%;
-  max-width: 500px;
-  min-height: 600px; /* 加入最小高度限制 */
+  width: 100%; /* 使用 100% 確保手機填滿 */
+  max-width: 500px; /* 桌面端限制在 500px */
+  min-height: 400px; /* 縮減最小高度，讓面板更靈活 */
   display: flex;
   flex-direction: column;
 }
@@ -661,7 +685,7 @@ async function saveRecord(note: string) {
 
 .result-banner {
   background: #fff9c4;
-  padding: 12px 40px;
+  padding: 12px 25px; /* 從 40px 縮減至 25px */
   border-radius: 50px;
   border: 2px solid #fff176;
   box-shadow: 0 4px 15px rgba(255, 241, 118, 0.3);
