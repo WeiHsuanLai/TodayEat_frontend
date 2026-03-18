@@ -1,7 +1,10 @@
 <!-- src/components/GridLottery.vue - 九宮格抽獎元件 -->
 <template>
   <div class="lottery-container q-pa-lg flex flex-center">
-    <div class="row q-col-gutter-xl items-center justify-center full-width" style="min-height: 80vh">
+    <div
+      class="row q-col-gutter-xl items-center justify-center full-width"
+      style="min-height: 80vh"
+    >
       <!-- 左側：九宮格抽獎區 -->
       <div class="col-12 col-md-auto column items-center q-pa-md">
         <h3 class="text-h5 q-mb-lg text-weight-bold text-center">{{ t('whatToEatToday') }}</h3>
@@ -34,7 +37,13 @@
         <!-- 底部按鈕與結果 -->
         <div class="column items-center q-mt-md full-width">
           <!-- 第一排：開始按鈕與結果展示 -->
-          <div :class="$q.screen.lt.md ? 'column q-gutter-y-md' : 'row items-center q-gutter-md no-wrap q-mb-md'">
+          <div
+            :class="
+              $q.screen.lt.md
+                ? 'column q-gutter-y-md'
+                : 'row items-center q-gutter-md no-wrap q-mb-md'
+            "
+          >
             <div class="row items-center q-gutter-sm no-wrap justify-center">
               <q-btn
                 :label="t('start')"
@@ -63,9 +72,16 @@
             </div>
 
             <!-- 今日推薦展示區 -->
-            <div class="result-banner text-weight-bold row items-center no-wrap" :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem;' : ''">
+            <div
+              class="result-banner text-weight-bold row items-center no-wrap"
+              :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem;' : ''"
+            >
               <span class="q-mr-xs text-no-wrap">🎉 {{ t('todayRecommended') }}：</span>
-              <span class="text-primary text-weight-bolder" :class="$q.screen.lt.md ? 'text-h6' : 'text-h5'" style="min-width: 60px; text-align: center">
+              <span
+                class="text-primary text-weight-bolder"
+                :class="$q.screen.lt.md ? 'text-h6' : 'text-h5'"
+                style="min-width: 60px; text-align: center"
+              >
                 {{ winner || '???' }}
               </span>
             </div>
@@ -179,12 +195,15 @@
 
     <!-- 手機版專用：底部選單彈窗 -->
     <q-dialog v-model="showMobilePanel" position="bottom" class="lt-md">
-      <q-card class="control-panel q-pa-lg no-border-radius-top" style="max-height: 85vh; overflow-y: auto; width: 100%">
+      <q-card
+        class="control-panel q-pa-lg no-border-radius-top"
+        style="max-height: 85vh; overflow-y: auto; width: 100%"
+      >
         <!-- 頂部拉動視覺提示 -->
         <div class="row justify-center q-mb-sm">
           <div style="width: 40px; height: 4px; background: #e0e0e0; border-radius: 2px"></div>
         </div>
-        
+
         <div class="row items-center justify-between q-mb-md">
           <div class="text-h6 text-primary">{{ t('selectCategory') }}</div>
           <q-btn icon="close" flat round dense v-close-popup />
@@ -325,7 +344,6 @@ watch(
 watch(
   () => locale.value,
   async () => {
-
     loadingCategories.value = true;
     try {
       const res = await foodApi.getCategories();
@@ -443,11 +461,11 @@ const gridContainerStyle = computed(() => {
 const itemStyle = computed(() => {
   const n = gridSize.value;
   const isMobile = $q.screen.lt.md;
-  
+
   let fontSize = isMobile ? '1rem' : '1.25rem';
   if (n === 4) fontSize = isMobile ? '0.85rem' : '1rem';
   if (n >= 5) fontSize = isMobile ? '0.7rem' : '0.85rem';
-  
+
   return {
     fontSize,
     height: '100%',
@@ -632,15 +650,15 @@ async function saveRecord(note: string) {
   border-radius: 20px;
   background: #ffffff;
   border: 2px solid #f5f5f5;
-  width: 100%; /* 使用 100% 確保手機填滿 */
-  max-width: 500px; /* 桌面端限制在 500px */
-  min-height: 400px; /* 縮減最小高度，讓面板更靈活 */
+  width: 100%;
+  max-width: 500px;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
 
 .dish-selector {
-  flex-grow: 1; /* 讓菜色按鈕區自動佔據可用空間 */
+  flex-grow: 1;
   max-height: 400px;
   overflow-y: auto;
   padding: 4px;
@@ -685,7 +703,7 @@ async function saveRecord(note: string) {
 
 .result-banner {
   background: #fff9c4;
-  padding: 12px 25px; /* 從 40px 縮減至 25px */
+  padding: 12px 25px;
   border-radius: 50px;
   border: 2px solid #fff176;
   box-shadow: 0 4px 15px rgba(255, 241, 118, 0.3);

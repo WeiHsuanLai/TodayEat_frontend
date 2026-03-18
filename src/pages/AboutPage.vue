@@ -42,7 +42,7 @@
               class="about-card mobile-card-height cursor-pointer full-height"
               @click="handleCardClick('/draw')"
             >
-              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
                 <!-- 手機版：水平並排 -->
                 <div
                   v-if="$q.screen.lt.sm"
@@ -57,7 +57,7 @@
                   <div class="text-h6 text-weight-bold q-mb-sm">{{ t('draw') }}</div>
                 </template>
 
-                <div class="text-body2 text-grey-7">
+                <div class="text-body2 text-grey-7 q-mt-xs">
                   {{ t('drawDesc') }}
                 </div>
               </q-card-section>
@@ -72,7 +72,7 @@
               class="about-card mobile-card-height cursor-pointer full-height"
               @click="handleCardClick('/mapsearch', true)"
             >
-              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
                 <!-- 手機版：水平並排 -->
                 <div
                   v-if="$q.screen.lt.sm"
@@ -87,7 +87,7 @@
                   <div class="text-h6 text-weight-bold q-mb-sm">{{ t('mapTitle') }}</div>
                 </template>
 
-                <div class="text-body2 text-grey-7">
+                <div class="text-body2 text-grey-7 q-mt-xs">
                   {{ t('mapDesc') }}
                 </div>
               </q-card-section>
@@ -102,7 +102,7 @@
               class="about-card mobile-card-height cursor-pointer full-height"
               @click="handleCardClick('/FoodDrawHistory', true)"
             >
-              <q-card-section class="full-height flex flex-center column q-pa-lg text-center">
+              <q-card-section :class="['full-height flex flex-center column text-center', $q.screen.lt.sm ? 'q-pa-md' : 'q-pa-lg']">
                 <!-- 手機版：水平並排 -->
                 <div
                   v-if="$q.screen.lt.sm"
@@ -117,7 +117,7 @@
                   <div class="text-h6 text-weight-bold q-mb-sm">{{ t('historyTitle') }}</div>
                 </template>
 
-                <div class="text-body2 text-grey-7">
+                <div class="text-body2 text-grey-7 q-mt-xs">
                   {{ t('historyDesc') }}
                 </div>
               </q-card-section>
@@ -166,8 +166,8 @@ const handleCardClick = (path: string, requiresAuth = false) => {
 
 @media (max-width: 599px) {
   .mobile-card-height {
-    width: 80vw;
-    min-height: 45vw;
+    width: 72vw;
+    min-height: 160px; /* 增加高度，使其比例更均勻 */
     margin: 0 auto;
   }
 }
