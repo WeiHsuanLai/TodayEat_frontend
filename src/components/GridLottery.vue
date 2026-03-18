@@ -36,35 +36,47 @@
 
         <!-- 底部按鈕與結果 -->
         <div class="column items-center q-mt-md full-width">
-          <!-- 第一排：開始按鈕與結果展示 -->
+          <!-- 第一排：開始按鈕與結果展示 (桌面端橫向，手機端縱向) -->
           <div
             :class="
               $q.screen.lt.md
-                ? 'column q-gutter-y-md'
-                : 'row items-center q-gutter-md no-wrap q-mb-md'
+                ? 'column items-center q-gutter-y-md'
+                : 'row items-center justify-center q-gutter-md no-wrap q-mb-md'
             "
           >
-            <div class="row items-center q-gutter-sm no-wrap justify-center">
+            <!-- 桌面端按鈕 -->
+            <q-btn
+              :label="t('start')"
+              color="accent"
+              size="lg"
+              unelevated
+              rounded
+              padding="12px 40px"
+              @click="startDraw"
+              :disable="isDrawing || prizes.length < 2"
+              style="height: 52px"
+              class="start-btn gt-sm"
+            />
+
+            <!-- 手機端專用：開始按鈕與功能按鈕容器 -->
+            <div v-if="$q.screen.lt.md" class="row items-center q-gutter-sm no-wrap justify-center">
               <q-btn
                 :label="t('start')"
                 color="accent"
-                :size="$q.screen.lt.md ? 'md' : 'lg'"
+                size="md"
                 unelevated
                 rounded
-                :padding="$q.screen.lt.md ? '10px 30px' : '12px 40px'"
+                padding="10px 30px"
                 @click="startDraw"
                 :disable="isDrawing || prizes.length < 2"
                 class="start-btn"
               />
-
-              <!-- 手機版專用：喚起選單按鈕 (放於開始按鈕旁) -->
               <q-btn
                 icon="tune"
                 color="primary"
                 flat
                 round
-                :size="$q.screen.lt.md ? 'md' : 'lg'"
-                class="lt-md"
+                size="md"
                 @click="showMobilePanel = true"
               >
                 <q-tooltip>{{ t('selectCategory') }}</q-tooltip>
@@ -74,13 +86,13 @@
             <!-- 今日推薦展示區 -->
             <div
               class="result-banner text-weight-bold row items-center no-wrap"
-              :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem;' : ''"
+              :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem; min-height: 42px;' : 'height: 52px; padding: 0 25px;'"
             >
               <span class="q-mr-xs text-no-wrap">🎉 {{ t('todayRecommended') }}：</span>
               <span
                 class="text-primary text-weight-bolder"
-                :class="$q.screen.lt.md ? 'text-h6' : 'text-h5'"
-                style="min-width: 60px; text-align: center"
+                :class="$q.screen.lt.md ? 'text-h6' : 'text-h6'"
+                style="min-width: 60px; text-align: center; line-height: 1"
               >
                 {{ winner || '???' }}
               </span>
@@ -414,6 +426,9 @@ watch(
 watch(
   () => locale.value,
   async () => {
+    // 切換語言時清空九宮格內容
+    clearPrizes();
+
     loadingCategories.value = true;
     try {
       const res = await foodApi.getCategories();
@@ -681,7 +696,9 @@ async function saveRecord(note: string) {
     color 0.2s ease;
   text-align: center;
   padding: 8px;
-  word-break: break-all;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.2;
   flex-shrink: 0;
 }
 

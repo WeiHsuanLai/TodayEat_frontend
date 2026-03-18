@@ -43,7 +43,7 @@
           <!-- 格式化日期與時間 -->
           <template v-slot:body-cell-createdAt="props">
             <q-td :props="props">
-              <div>{{ formatDate(props.value) }}</div>
+              <div class="text-weight-medium">{{ formatDate(props.value) }}</div>
               <div class="text-caption text-grey-6">{{ formatTime(props.value) }}</div>
             </q-td>
           </template>
@@ -198,21 +198,20 @@ const columns = computed(() => [
     name: 'createdAt',
     label: t('dateTime'),
     field: 'createdAt',
-    align: 'left' as const,
+    align: 'center' as const,
     sortable: true,
   },
   {
     name: 'dishName',
     label: t('recommendedDish'),
     field: 'dishName',
-    align: 'left' as const,
-    sortable: true,
+    align: 'center' as const,
   },
   {
     name: 'note',
     label: t('note'),
     field: 'note',
-    align: 'left' as const,
+    align: 'center' as const,
   },
   {
     name: 'actions',
@@ -366,12 +365,14 @@ function formatTime(dateStr: string) {
   margin-right: auto;
 }
 
-:deep(.q-table th),
-:deep(.q-table td) {
+:deep(.q-table thead th),
+:deep(.q-table tbody td) {
   vertical-align: middle !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
 }
 
-:deep(.q-table th) {
+:deep(.q-table thead th) {
   font-weight: 700;
   color: #555;
   background-color: #f8f9fa;

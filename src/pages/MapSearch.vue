@@ -2,19 +2,21 @@
 <template>
   <q-page class="q-pa-md">
     <!-- 搜尋列 -->
-    <div class="row q-col-gutter-sm items-center q-mb-md">
-      <div class="col-12 col-sm-6">
-        <div class="text-h6">搜尋附近店家</div>
-      </div>
-      <div class="col-12 col-sm-6">
+    <div class="row q-col-gutter-md items-center q-mb-md">
+      <!-- 桌面端對齊右側清單區塊 (offset 7 + col 5) -->
+      <div class="col-12 col-md-5 offset-md-7 row items-center no-wrap">
+        <div class="text-h6 q-mr-md text-no-wrap text-primary text-weight-bold">
+          {{ t('searchNearby') }}
+        </div>
         <q-input
           v-model="keyword"
-          label="輸入關鍵字"
+          :placeholder="t('enterKeyword')"
           @keyup.enter="onSearch"
           @compositionend="onSearch"
           dense
           outlined
           bg-color="white"
+          class="col"
         >
           <template #append>
             <q-btn flat icon="search" color="primary" @click="onSearch" />
@@ -23,21 +25,27 @@
       </div>
     </div>
 
+    <!-- 主要內容區 -->
     <div class="row q-col-gutter-md">
-      <!-- 地圖區塊 -->
+      <!-- 地圖區塊 (左側) -->
       <div class="col-12 col-md-7">
-        <q-card flat bordered class="overflow-hidden">
+        <q-card flat bordered class="overflow-hidden main-container-card">
           <div id="map" class="map-container"></div>
         </q-card>
       </div>
 
-      <!-- 清單區塊 -->
+      <!-- 清單區塊 (右側) -->
       <div class="col-12 col-md-5">
-        <q-card flat bordered class="full-height">
-          <q-card-section class="q-pa-none">
-            <div class="places-list-container">
+        <q-card flat bordered class="main-container-card column">
+          <q-card-section class="col q-pa-none relative-position">
+            <q-scroll-area class="full-height">
               <q-list separator v-if="places.length">
-                <q-item v-for="(place, index) in places" :key="index" clickable>
+                <q-item
+                  v-for="(place, index) in places"
+                  :key="index"
+                  clickable
+                  @click="centerMapOnPlace(place, index)"
+                >
                   <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
                     <q-img
                       :src="place.photoUrl || ''"
@@ -55,16 +63,18 @@
                     <q-item-label class="text-weight-bold">{{ place.name }}</q-item-label>
                     <q-item-label caption lines="2">{{ place.vicinity }}</q-item-label>
                     <q-item-label caption class="text-primary text-weight-medium">
-                      ⭐️ {{ place.rating ?? '無' }}（{{ place.user_ratings_total ?? 0 }} 則）
+                      ⭐️ {{ place.rating ?? t('ratingNone') }} {{ t('reviewsCount', { count: place.user_ratings_total ?? 0 }) }}
                     </q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
-              <div v-else class="text-grey q-pa-xl text-center">
-                <q-icon name="map" size="48px" color="grey-4" class="q-mb-sm" />
-                <div class="text-body1">尚無搜尋結果</div>
+              <div v-else class="text-grey full-height flex flex-center q-pa-xl text-center">
+                <div>
+                  <q-icon name="map" size="48px" color="grey-4" class="q-mb-sm" />
+                  <div class="text-body1">{{ t('noSearchResults') }}</div>
+                </div>
               </div>
-            </div>
+            </q-scroll-area>
           </q-card-section>
         </q-card>
       </div>
@@ -74,10 +84,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Loader } from '@googlemaps/js-api-loader';
 import { placesApi } from 'src/api';
 import { useRoute } from 'vue-router';
 
+const { t } = useI18n();
 const route = useRoute();
 const keyword = ref('');
 const map = ref<google.maps.Map | null>(null);
@@ -85,7 +97,47 @@ const map = ref<google.maps.Map | null>(null);
 const markers = ref<any[]>([]);
 const userLocation = ref({ lat: 25.0478, lng: 121.5319 }); // 預設台北車站
 
+interface Place {
+  name: string;
+  vicinity: string;
+  rating?: number;
+  user_ratings_total?: number;
+  photoUrl?: string;
+  photos?: Array<{ photo_reference: string }>;
+  geometry: {
+    location: {
+      lat: number | (() => number);
+      lng: number | (() => number);
+    };
+  };
+}
+
 const isSearching = ref(false);
+
+const centerMapOnPlace = (place: Place, index: number) => {
+  if (!map.value || !place.geometry?.location) return;
+
+  const loc = place.geometry.location;
+  const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
+  const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
+
+  const position = { lat, lng };
+
+  // 1. 平滑移動到該位置
+  map.value.panTo(position);
+
+  // 2. 放大地圖（如果目前縮放不足 17）
+  if (map.value.getZoom()! < 17) {
+    map.value.setZoom(17);
+  }
+
+  // 3. 如果有對應的標記，觸發點擊事件以顯示 InfoWindow
+  const marker = markers.value[index] as google.maps.Marker | undefined;
+  if (marker) {
+    // 使用 Google Maps 的 trigger 觸發點擊
+    google.maps.event.trigger(marker, 'click');
+  }
+};
 
 const onSearch = async () => {
   console.log('[🔍 觸發搜尋]', keyword.value);
@@ -159,7 +211,7 @@ const addUserLocationMarker = () => {
   new google.maps.Marker({
     position: userLocation.value,
     map: map.value,
-    title: '目前位置',
+    title: t('currentLocation'),
     icon: {
       path: google.maps.SymbolPath.CIRCLE,
       scale: 8,
@@ -328,26 +380,32 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.map-container {
-  width: 100%;
-  height: 50vh;
-  min-height: 350px;
+.main-container-card {
+  height: calc(100vh - 180px);
+  min-height: 400px;
 }
 
-.places-list-container {
-  max-height: calc(50vh + 30px);
-  overflow-y: auto;
+.map-container {
+  width: 100%;
+  height: 100%;
 }
 
 /* 手機與平板版 (小於 1024px) */
 @media (max-width: 1023px) {
-  .map-container {
-    height: 40vh;
-    min-height: 280px;
+  .main-container-card {
+    height: auto;
+    min-height: auto;
   }
 
-  .places-list-container {
-    max-height: 300px;
+  .map-container {
+    height: 40vh;
+    min-height: 300px;
+  }
+
+  /* 行動端讓列表維持適當高度 */
+  .col-md-5 .main-container-card {
+    height: 400px;
+    margin-top: 16px;
   }
 }
 </style>
