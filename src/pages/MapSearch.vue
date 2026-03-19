@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+import { env } from 'src/env';
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -95,7 +96,7 @@ const { t } = useI18n();
 const route = useRoute();
 const keyword = ref('');
 const map = ref<google.maps.Map | null>(null);
-const markers = ref<google.maps.marker.AdvancedMarkerElement[]>([]);
+const markers = ref<google.maps.Marker[]>([]);
 const userLocation = ref({ lat: 25.0478, lng: 121.5319 }); // 預設台北車站
 
 interface Place {
@@ -141,7 +142,7 @@ const centerMapOnPlace = (place: Place, index: number) => {
 };
 
 const onSearch = async () => {
-  console.log('[🔍 觸發搜尋]', keyword.value);
+  // console.log('[🔍 觸發搜尋]', keyword.value);
   if (!keyword.value.trim()) return;
   if (!map.value) {
     console.warn('⚠️ 地圖尚未初始化');
@@ -164,73 +165,71 @@ const onSearch = async () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const places = ref<any[]>([]);
 
-// 建立搜尋區域顯示
-const searchCircle = ref<google.maps.Circle | null>(null);
-
 const hasSearched = ref(false);
 
 // 初始化地圖
 const initMap = () => {
+  const mapElement = document.getElementById('map');
+  // console.log('[🗺️ initMap] 初始化地圖...', { mapElement: !!mapElement });
+
   if (!window.google || !window.google.maps) {
-    console.error('Google Maps 尚未載入完成');
+    console.error('[❌] Google Maps 尚未載入完成');
     return;
   }
 
+  const mapId = env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID';
+  // console.log('[🗺️ initMap] 使用 Map ID:', mapId);
+
   // 匯入 marker 函式庫
-  map.value = new google.maps.Map(document.getElementById('map') as HTMLElement, {
+  map.value = new google.maps.Map(mapElement as HTMLElement, {
     center: userLocation.value,
     zoom: 15,
-    mapId: import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID',
+    mapId: mapId,
   });
 
   google.maps.event.addListenerOnce(map.value, 'idle', () => {
+    // console.log('[🗺️ Map IDLE] 地圖已就緒');
+    addUserLocationMarker();
+
     if (keyword.value.trim()) {
-      console.log('✅ 地圖 idle 首次觸發搜尋');
+      // console.log('✅ 地圖 idle 首次觸發搜尋');
       hasSearched.value = true;
       void onSearch();
     }
   });
-
-  addUserLocationMarker();
-  drawSearchCircle();
 };
 
 // 清除舊標記
 const clearMarkers = () => {
-  markers.value.forEach((m) => (m.map = null));
+  markers.value.forEach((m) => m.setMap(null));
   markers.value = [];
-
-  if (searchCircle.value) {
-    searchCircle.value.setMap(null);
-    searchCircle.value = null;
-  }
 };
 
-// 暫存 Google Maps 程式庫類別
-let AdvancedMarkerElement: typeof google.maps.marker.AdvancedMarkerElement;
-let PinElement: typeof google.maps.marker.PinElement;
-
 const addUserLocationMarker = () => {
-  if (!map.value || !AdvancedMarkerElement || !PinElement) return;
+  // console.log('[📍 addUserLocationMarker] 建立傳統標記...');
+  if (!map.value) return;
 
-  const pinBackground = new PinElement({
-    background: '#4285F4',
-    borderColor: '#ffffff',
-    glyphColor: '#ffffff',
-  });
-
-  new AdvancedMarkerElement({
+  new google.maps.Marker({
     position: userLocation.value,
     map: map.value,
     title: t('currentLocation'),
-    content: pinBackground.element,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: '#4285F4',
+      fillOpacity: 1,
+      strokeWeight: 2,
+      strokeColor: '#ffffff',
+      scale: 10,
+    },
   });
+  // console.log('[✅] 使用者位置標記已建立 (Legacy)');
 };
 
 // 加入店家標記
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const addMarkers = (places: any[]) => {
-  if (!map.value || !AdvancedMarkerElement) return;
+  // console.log(`[🏠 addMarkers] 處理 ${places.length} 個店家`);
+  if (!map.value) return;
 
   clearMarkers();
 
@@ -239,18 +238,29 @@ const addMarkers = (places: any[]) => {
     const lat = typeof loc.lat === 'function' ? loc.lat() : loc.lat;
     const lng = typeof loc.lng === 'function' ? loc.lng() : loc.lng;
 
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      continue;
-    }
+    if (typeof lat !== 'number' || typeof lng !== 'number') continue;
 
-    const marker = new AdvancedMarkerElement({
+    const marker = new google.maps.Marker({
       map: map.value,
       position: { lat, lng },
       title: place.name,
+      // 預設即為紅色標記
     });
 
+    const encodedName = encodeURIComponent(place.name);
+    // 使用搜尋連結，這會在導航列顯示名稱
+    const searchNavigationUrl = `https://www.google.com/maps/search/?api=1&query=${encodedName}&query_place_id=${place.place_id || ''}&query=${lat},${lng}`;
+    
     const info = new google.maps.InfoWindow({
-      content: `<strong>${place.name}</strong><br>${place.vicinity}`,
+      content: `
+        <div class="q-pa-sm">
+          <div class="text-weight-bold" style="font-size: 1.1em; margin-bottom: 4px;">${place.name}</div>
+          <div class="text-grey-8" style="margin-bottom: 12px;">${place.vicinity}</div>
+          <a href="${searchNavigationUrl}" target="_blank" class="q-btn q-btn--standard q-btn--rectangle bg-primary text-white q-btn--actionable q-focusable q-hoverable q-btn--dense" style="text-decoration: none; padding: 4px 12px; border-radius: 4px; display: inline-block;">
+            <span class="q-btn__content">${t('startNavigation')}</span>
+          </a>
+        </div>
+      `,
     });
 
     marker.addListener('click', () => {
@@ -259,6 +269,7 @@ const addMarkers = (places: any[]) => {
 
     markers.value.push(marker);
   }
+  // console.log(`[✅] ${markers.value.length} 個店家已加入地圖 (Legacy)`);
 };
 
 // 查詢附近店家
@@ -276,17 +287,6 @@ const fetchNearby = async () => {
 
     // 計算畫面中心到右上角的距離作為 radius
     const radius = google.maps.geometry.spherical.computeDistanceBetween(center, ne);
-    // 畫出搜尋範圍的圓形
-    searchCircle.value = new google.maps.Circle({
-      center: center.toJSON(), // 使用地圖中心
-      radius,
-      map: map.value,
-      fillColor: '#4285F4',
-      fillOpacity: 0.2,
-      strokeColor: '#4285F4',
-      strokeOpacity: 0.6,
-      strokeWeight: 1,
-    });
 
     const params = {
       keyword: keyword.value,
@@ -294,10 +294,8 @@ const fetchNearby = async () => {
       lng: userLocation.value.lng,
       radius: Math.floor(radius),
     };
-    console.log('params', params);
 
     const res = await placesApi.getNearbyStores(params);
-    console.log('res', res);
     places.value = res.data.results;
     // for (const place of places.value) {
     //   console.log(`[📷 圖片資訊] ${place.name} =>`, place.photoUrl || '❌ 無圖片');
@@ -308,38 +306,6 @@ const fetchNearby = async () => {
   }
 };
 
-const drawSearchCircle = () => {
-  if (!map.value) return;
-  if (searchCircle.value) {
-    searchCircle.value.setMap(null); // 清除舊的
-    searchCircle.value = null;
-  }
-
-  const bounds = map.value.getBounds();
-  const center = map.value.getCenter();
-  const ne = bounds?.getNorthEast();
-
-  if (!bounds || !center || !ne) {
-    // console.warn('⚠️ 無法取得地圖視野資訊，略過畫圓');
-    return;
-  }
-
-  const radius = google.maps.geometry.spherical.computeDistanceBetween(center, ne);
-
-  searchCircle.value = new google.maps.Circle({
-    center: center.toJSON(),
-    radius,
-    map: map.value,
-    fillColor: '#4285F4',
-    fillOpacity: 0.2,
-    strokeColor: '#4285F4',
-    strokeOpacity: 0.6,
-    strokeWeight: 1,
-  });
-
-  console.log('✅ 已畫出搜尋圓圈');
-};
-
 onMounted(async () => {
   if (hasSearched.value) return;
   const initialKeyword = route.query.keyword;
@@ -348,7 +314,7 @@ onMounted(async () => {
   }
   try {
     const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      apiKey: env.VITE_GOOGLE_MAPS_API_KEY as string,
       language: 'zh-TW',
       version: 'weekly',
     });
@@ -357,14 +323,11 @@ onMounted(async () => {
     await loader.importLibrary('maps');
 
     // 載入 marker 與 places library（模組式）
-    const [markerLib] = await Promise.all([
+    await Promise.all([
       loader.importLibrary('marker'),
       loader.importLibrary('places'),
       loader.importLibrary('geometry'),
     ]);
-
-    AdvancedMarkerElement = markerLib.AdvancedMarkerElement;
-    PinElement = markerLib.PinElement;
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {

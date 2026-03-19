@@ -1,42 +1,59 @@
 // src/api/food.ts
 import { api } from './client';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { z } from 'zod';
 
-export interface PrizeItem {
-  label: string;
-  items: string[];
-}
+export const PrizeItemSchema = z.object({
+  label: z.string(),
+  items: z.array(z.string()),
+});
 
-export interface TodayDrawsResponse {
-  meals?: Record<string, string | undefined>;
-}
+export type PrizeItem = z.infer<typeof PrizeItemSchema>;
 
-export interface Dish {
-  _id: string;
-  name: string;
-  category: string;
-  image: string;
-}
+export const TodayDrawsResponseSchema = z.object({
+  meals: z.record(z.string(), z.string().optional()).optional(),
+});
 
-export interface ApiResponse<T> {
+export type TodayDrawsResponse = z.infer<typeof TodayDrawsResponseSchema>;
+
+export const DishSchema = z.object({
+  _id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  image: z.string(),
+});
+
+export type Dish = z.infer<typeof DishSchema>;
+
+export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    data: dataSchema,
+  });
+
+export type ApiResponse<T> = {
   success: boolean;
   data: T;
-}
+};
 
-export interface FoodRecord {
-  _id: string;
-  userId: string;
-  dishId?: string;
-  dishName: string;
-  note?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export const FoodRecordSchema = z.object({
+  _id: z.string(),
+  userId: z.string(),
+  dishId: z.string().optional(),
+  dishName: z.string(),
+  note: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
-export interface MyFoodRecordsResponse {
-  success: boolean;
-  result: Record<string, FoodRecord[]>;
-}
+export type FoodRecord = z.infer<typeof FoodRecordSchema>;
+
+export const MyFoodRecordsResponseSchema = z.object({
+  success: z.boolean(),
+  result: z.record(z.string(), z.array(FoodRecordSchema)),
+});
+
+export type MyFoodRecordsResponse = z.infer<typeof MyFoodRecordsResponseSchema>;
 
 export const foodApi = {
   /**
@@ -115,18 +132,18 @@ export const foodApi = {
   },
 
   /**
-   * 修改指定的抽取紀錄
-   */
-  updateFoodRecord(id: string, data: { dishName?: string; note?: string }) {
-    return api.patch(`/food-records/${id}`, data);
-  },
-
-  /**
    * 獲取獎品清單
    * @param isLoggedIn 是否登入，決定呼叫 /user/custom-items 還是 /prizes
    */
   getPrizes(isLoggedIn: boolean) {
     const endpoint = isLoggedIn ? '/user/custom-items' : '/prizes';
     return api.get<PrizeItem[]>(endpoint);
-  }
+  },
+
+  /**
+   * 修改指定的抽取紀錄
+   */
+  updateFoodRecord(id: string, data: { dishName?: string; note?: string }) {
+    return api.patch(`/food-records/${id}`, data);
+  },
 };

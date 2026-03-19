@@ -49,6 +49,11 @@ export default defineConfigWithVueTs(
 
   {
     languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ['src/env.d.ts', 'eslint.config.js', 'quasar.config.ts', 'postcss.config.js'],
+        },
+      },
       ecmaVersion: 'latest',
       sourceType: 'module',
 

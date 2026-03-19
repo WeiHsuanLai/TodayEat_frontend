@@ -86,7 +86,11 @@
             <!-- 今日推薦展示區 -->
             <div
               class="result-banner text-weight-bold row items-center no-wrap"
-              :style="$q.screen.lt.md ? 'padding: 8px 15px; font-size: 0.95rem; min-height: 42px;' : 'height: 52px; padding: 0 25px;'"
+              :style="
+                $q.screen.lt.md
+                  ? 'padding: 8px 15px; font-size: 0.95rem; min-height: 42px;'
+                  : 'height: 52px; padding: 0 25px;'
+              "
             >
               <span class="q-mr-xs text-no-wrap">🎉 {{ t('todayRecommended') }}：</span>
               <span
@@ -226,18 +230,38 @@
           <div class="row items-center justify-between q-px-md q-pt-sm relative-position">
             <!-- 佔位用，確保 Handle 居中 -->
             <div style="width: 32px"></div>
-            
+
             <div class="drawer-handle"></div>
-            
-            <q-btn icon="close" flat round dense size="sm" color="grey-7" @click.stop="showMobilePanel = false" />
+
+            <q-btn
+              icon="close"
+              flat
+              round
+              dense
+              size="sm"
+              color="grey-7"
+              @click.stop="showMobilePanel = false"
+            />
           </div>
         </div>
 
         <!-- 內容區 (使用 q-scroll-area 確保捲動條可見) -->
         <q-scroll-area
           class="drawer-content"
-          :thumb-style="{ right: '4px', borderRadius: '5px', background: '#ccc', width: '6px', opacity: '0.7' }"
-          :bar-style="{ right: '2px', borderRadius: '9px', background: '#f0f0f0', width: '10px', opacity: '0.2' }"
+          :thumb-style="{
+            right: '4px',
+            borderRadius: '5px',
+            background: '#ccc',
+            width: '6px',
+            opacity: '0.7',
+          }"
+          :bar-style="{
+            right: '2px',
+            borderRadius: '9px',
+            background: '#f0f0f0',
+            width: '10px',
+            opacity: '0.2',
+          }"
         >
           <div class="q-pa-md q-pb-xl">
             <!-- 手動輸入 (移至上方) -->
@@ -453,7 +477,7 @@ watch(
 );
 
 async function fetchDishesByCategory(category: string | null) {
-  console.log('[GridLottery] 嘗試獲取分類菜色:', category);
+  // console.log('[GridLottery] 嘗試獲取分類菜色:', category);
   if (!category) {
     fetchedDishes.value = [];
     return;
@@ -462,7 +486,7 @@ async function fetchDishesByCategory(category: string | null) {
 
   try {
     const res = await foodApi.getDishesByCategory(category);
-    console.log('[GridLottery] API 回傳結果:', res.data);
+    // console.log('[GridLottery] API 回傳結果:', res.data);
     if (res.data.success) {
       fetchedDishes.value = res.data.data;
     } else {

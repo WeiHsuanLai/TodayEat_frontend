@@ -1,12 +1,15 @@
 // src/api/places.ts
 import { api } from './client';
+import { z } from 'zod';
 
-export interface NearbyStoresParams {
-  lat: number;
-  lng: number;
-  radius: number;
-  keyword?: string;
-}
+export const NearbyStoresParamsSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+  radius: z.number(),
+  keyword: z.string().optional(),
+});
+
+export type NearbyStoresParams = z.infer<typeof NearbyStoresParamsSchema>;
 
 export const placesApi = {
   /**
@@ -14,5 +17,5 @@ export const placesApi = {
    */
   getNearbyStores(params: NearbyStoresParams) {
     return api.get('/places/nearby-stores', { params });
-  }
+  },
 };

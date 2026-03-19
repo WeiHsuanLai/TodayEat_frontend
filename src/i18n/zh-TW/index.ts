@@ -113,4 +113,5 @@ export default {
   serverConnected: '✅ 伺服器已連線',
   googleUserNoPassword: '您是使用 Google 帳號登入',
   manageInGoogleAccount: '請至 Google 帳號設定中管理您的安全性與密碼',
+  startNavigation: '開始導航',
 };

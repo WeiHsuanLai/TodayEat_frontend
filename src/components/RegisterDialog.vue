@@ -129,58 +129,24 @@ watch(
 );
 
 // 使用 Zod 定義驗證規則
-const isAccountRequired = computed(() => true);
-const isPasswordRequired = computed(() => true);
-const isConfirmPasswordRequired = computed(() => true);
-
-// 2. 定義欄位的驗證規則（依需求回傳不同 Zod 規則）
-const accountSchema = computed(() =>
-  isAccountRequired.value
-    ? z
-        .string({ required_error: t('pleaseEnterAccount') })
-        .nonempty(t('pleaseEnterAccount'))
-        .min(4, { message: t('accountTooShort') })
-    : z.string().optional(),
-);
-
-const emailSchema = computed(() =>
-  z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail')),
-);
-
-const passwordSchema = computed(() =>
-  isPasswordRequired.value
-    ? z.string({ required_error: t('pleaseEnterPassword') }).min(4, { message: t('passwordTooShortLogin') })
-    : z.string().optional(),
-);
-
-const confirmPasswordSchema = computed(() =>
-  isConfirmPasswordRequired.value
-    ? z.string({ required_error: t('pleaseConfirmPassword') }).nonempty(t('pleaseConfirmPassword'))
-    : z.string().optional(),
-);
-
-// 3. 定義 schema
 const schema = computed(() =>
   toTypedSchema(
     z
       .object({
-        account: accountSchema.value,
-        email: emailSchema.value,
-        password: passwordSchema.value,
-        confirmPassword: confirmPasswordSchema.value,
+        account: z
+          .string({ required_error: t('pleaseEnterAccount') })
+          .min(4, { message: t('accountTooShort') }),
+        email: z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail')),
+        password: z
+          .string({ required_error: t('pleaseEnterPassword') })
+          .min(4, { message: t('passwordTooShortLogin') }),
+        confirmPassword: z
+          .string({ required_error: t('pleaseConfirmPassword') })
+          .nonempty(t('pleaseConfirmPassword')),
       })
-      .superRefine((data, ctx) => {
-        if (
-          isPasswordRequired.value &&
-          isConfirmPasswordRequired.value &&
-          data.password !== data.confirmPassword
-        ) {
-          ctx.addIssue({
-            path: ['confirmPassword'],
-            message: t('passwordsDoNotMatch'),
-            code: z.ZodIssueCode.custom,
-          });
-        }
+      .refine((data) => data.password === data.confirmPassword, {
+        message: t('passwordsDoNotMatch'),
+        path: ['confirmPassword'],
       }),
   ),
 );

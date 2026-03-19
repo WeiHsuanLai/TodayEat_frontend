@@ -124,6 +124,7 @@
 </template>
 
 <script setup lang="ts">
+import { env } from 'src/env';
 import { computed, ref, watch, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Form as VeeForm, Field, useForm } from 'vee-validate';
@@ -228,10 +229,10 @@ const emit = defineEmits<{
 }>();
 
 // api
-const captchaUrl = ref(import.meta.env.VITE_API + 'auth/captcha?t=' + Date.now());
+const captchaUrl = ref(env.VITE_API + 'auth/captcha?t=' + Date.now());
 
 const refreshCaptcha = () => {
-  captchaUrl.value = import.meta.env.VITE_API + 'auth/captcha?t=' + Date.now();
+  captchaUrl.value = env.VITE_API + 'auth/captcha?t=' + Date.now();
 };
 
 // 表單型別
@@ -299,51 +300,29 @@ watch(
 );
 
 // 使用 Zod 定義驗證規則
-const isAccountRequired = computed(() => !isResetMode.value);
-const isPasswordRequired = computed(() => !isResetMode.value);
-const isEmailValid = computed(() =>
-  isResetMode.value
-    ? z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail'))
-    : z.string(),
-);
+const schema = computed(() => {
+  if (isResetMode.value) {
+    return toTypedSchema(
+      z.object({
+        email: z.string({ required_error: t('pleaseEnterEmail') }).email(t('invalidEmail')),
+      }),
+    );
+  }
 
-// 帳號驗證規則
-const isAccountValid = computed(() =>
-  isAccountRequired.value
-    ? z
+  return toTypedSchema(
+    z.object({
+      account: z
         .string({ required_error: t('pleaseEnterAccount') })
-        .nonempty(t('pleaseEnterAccount'))
-        .min(4, { message: t('accountTooShort') })
-    : z.string(),
-);
-
-// 密碼驗證規則
-const isPasswordValid = computed(() =>
-  isPasswordRequired.value
-    ? z
+        .min(4, { message: t('accountTooShort') }),
+      password: z
         .string({ required_error: t('pleaseEnterPassword') })
-        .min(4, { message: t('passwordTooShortLogin') })
-    : z.string(),
-);
-
-// 驗證碼驗證規則
-const isCaptchaRequired = computed(() =>
-  z.string({ required_error: t('pleaseEnterCaptcha') }).nonempty(t('pleaseEnterCaptcha')),
-);
-
-const schema = computed(() =>
-  toTypedSchema(
-    isResetMode.value
-      ? z.object({
-          email: isEmailValid.value,
-        })
-      : z.object({
-          account: isAccountValid.value,
-          password: isPasswordValid.value,
-          captcha: isCaptchaRequired.value,
-        }),
-  ),
-);
+        .min(4, { message: t('passwordTooShortLogin') }),
+      captcha: z
+        .string({ required_error: t('pleaseEnterCaptcha') })
+        .nonempty(t('pleaseEnterCaptcha')),
+    }),
+  );
+});
 
 // 提交處理
 const onSubmit = async (values: Record<string, unknown>) => {

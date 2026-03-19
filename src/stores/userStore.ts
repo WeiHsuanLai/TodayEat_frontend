@@ -2,6 +2,15 @@
 import { defineStore } from 'pinia';
 import { userApi, foodApi, type PrizeItem } from 'src/api';
 import { Notify, Dialog } from 'quasar';
+import { z } from 'zod';
+
+const PersistedUserSchema = z.object({
+  username: z.string().optional().default('User'),
+  avatar: z.string().optional(),
+  token: z.string().min(1, 'Token 不得為空'),
+  role: z.number().nullable().optional(),
+  loginType: z.enum(['normal', 'google']).optional().default('normal'),
+});
 
 // 這是建立一個名為 'user' 的 Pinia store，用來管理使用者登入狀態與基本資料。
 export const useUserStore = defineStore('user', {
@@ -97,20 +106,23 @@ export const useUserStore = defineStore('user', {
       if (!data) return;
 
       try {
-        const user = JSON.parse(data);
+        const parsedData = JSON.parse(data);
+        const result = PersistedUserSchema.safeParse(parsedData);
 
-        // 基本安全性檢查：如果完全沒有 token，這筆資料就沒有還原意義
-        if (!user || !user.token) {
-          console.warn('[restore] 遺失 token，清除無效登入資訊');
+        // 基本安全性檢查：如果完全沒有 token，或格式不符，這筆資料就沒有還原意義
+        if (!result.success) {
+          console.warn('[restore] 本地狀態驗證失敗，清除無效登入資訊:', result.error.errors);
           localStorage.removeItem('user');
           return;
         }
 
+        const user = result.data;
+
         // 還原資料，若欄位缺失則給予預設值，避免 UI 噴錯
-        this.username = user.username || 'User';
+        this.username = user.username;
         this.token = user.token;
-        this.role = typeof user.role === 'number' ? user.role : null;
-        this.loginType = user.loginType || 'normal';
+        this.role = user.role ?? null;
+        this.loginType = user.loginType;
         this.avatar =
           user.avatar?.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.username}`;
 

@@ -4,6 +4,7 @@ import type { InternalAxiosRequestConfig } from 'axios';
 import { Notify } from 'quasar';
 import { unref } from 'vue';
 import { i18n } from 'src/boot/i18n';
+import { env } from 'src/env';
 
 declare module 'axios' {
   export interface InternalAxiosRequestConfig {
@@ -23,7 +24,7 @@ let isHandling401 = false; // 防止多次觸發 logout
 const retryCount = new WeakMap<InternalAxiosRequestConfig, number>();
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API || 'https://api.example.com',
+  baseURL: env.VITE_API || 'https://api.example.com',
   withCredentials: true,
   timeout: 30000, // 30 seconds timeout
 });

@@ -1,61 +1,78 @@
 // src/api/user.ts
 import type { AxiosRequestConfig } from 'axios';
 import { api } from './client';
+import { z } from 'zod';
 
-export interface User {
-  account: string;
-  username?: string;
-  email?: string;
-  role: number | null;
-  avatar: string;
-  token?: string;
-}
+export const UserSchema = z.object({
+  account: z.string().optional().default(''),
+  username: z.string().optional().default(''),
+  email: z.string().email().optional(),
+  role: z.number().nullable().default(0),
+  avatar: z.string().optional().default(''),
+  token: z.string().optional().default(''),
+});
 
-export interface LoginResponse {
-  success: boolean;
-  message: string;
-  token: string;
-  iat: string;
-  exp: string;
-  loginType: 'normal' | 'google';
-  user: User;
-}
+export type User = z.infer<typeof UserSchema>;
 
-export interface LoginLog {
-  _id: string;
-  userId: string;
-  action: string;
-  ip: string;
-  userAgent: string;
-  timestamp: string;
-  account: string;
-  email?: string;
-  role?: number;
-}
+export const LoginResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  token: z.string(),
+  iat: z.string(),
+  exp: z.string(),
+  loginType: z.enum(['normal', 'google']),
+  user: UserSchema,
+});
 
-export interface LoginParams {
-  account: string;
-  password?: string;
-  captcha?: string;
-}
+export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
-export interface RegisterParams {
-  account: string;
-  password?: string;
-  email?: string;
-}
+export const LoginLogSchema = z.object({
+  _id: z.string(),
+  userId: z.string(),
+  action: z.string(),
+  ip: z.string(),
+  userAgent: z.string(),
+  timestamp: z.string(),
+  account: z.string(),
+  email: z.string().email().optional(),
+  role: z.number().optional(),
+});
 
-export interface ChangePasswordParams {
-  currentPassword?: string;
-  newPassword?: string;
-}
+export type LoginLog = z.infer<typeof LoginLogSchema>;
+
+export const LoginParamsSchema = z.object({
+  account: z.string(),
+  password: z.string().optional(),
+  captcha: z.string().optional(),
+});
+
+export type LoginParams = z.infer<typeof LoginParamsSchema>;
+
+export const RegisterParamsSchema = z.object({
+  account: z.string(),
+  password: z.string().optional(),
+  email: z.string().email().optional(),
+});
+
+export type RegisterParams = z.infer<typeof RegisterParamsSchema>;
+
+export const ChangePasswordParamsSchema = z.object({
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+});
+
+export type ChangePasswordParams = z.infer<typeof ChangePasswordParamsSchema>;
 
 export const userApi = {
   /**
    * 登入
    */
   login(data: LoginParams) {
-    return api.post<LoginResponse>('/user/login', data);
+    return api.post<LoginResponse>('/user/login', data).then((res) => {
+      // 執行時期驗證：確保登入回傳的資料結構符合預期
+      LoginResponseSchema.parse(res.data);
+      return res;
+    });
   },
 
   /**
@@ -83,7 +100,11 @@ export const userApi = {
    * 獲取當前使用者資訊
    */
   getCurrentUser(config: AxiosRequestConfig = {}) {
-    return api.get<{ user: User }>('/user/getCurrentUser', config);
+    return api.get<{ user: User }>('/user/getCurrentUser', config).then((res) => {
+      // 執行時期驗證：確保獲取到的使用者資料結構不漏欄位
+      z.object({ user: UserSchema }).parse(res.data);
+      return res;
+    });
   },
 
   /**
@@ -105,5 +126,5 @@ export const userApi = {
    */
   getAdminLoginLogs() {
     return api.get<{ success: boolean; logs: LoginLog[] }>('/admin/login-logs');
-  }
+  },
 };
