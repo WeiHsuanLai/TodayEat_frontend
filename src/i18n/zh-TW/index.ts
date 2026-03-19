@@ -114,4 +114,8 @@ export default {
   googleUserNoPassword: '您是使用 Google 帳號登入',
   manageInGoogleAccount: '請至 Google 帳號設定中管理您的安全性與密碼',
   startNavigation: '開始導航',
+  address: '地址',
+  reviews: '精選評論',
+  viewMoreOnGoogle: '在 Google 地圖上查看更多',
+  loadingDetails: '載入詳情中...',
 };

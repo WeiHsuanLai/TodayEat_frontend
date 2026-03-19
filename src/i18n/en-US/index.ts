@@ -111,7 +111,12 @@ export default {
   pleaseConfirmPassword: 'Please confirm your password',
   connectingToServer: '⚠️ Trying to connect to server, please wait...',
   serverConnected: '✅ Server connected',
-  googleUserNoPassword: 'You are logged in with a Google account',
-  manageInGoogleAccount: 'Please manage your security and password in your Google account settings',
-  startNavigation: 'Navigation',
+  googleUserNoPassword: 'You are logged in with Google',
+  manageInGoogleAccount: 'Please manage your security and password in your Google Account settings',
+  startNavigation: 'Start Navigation',
+  address: 'Address',
+  reviews: 'Selected Reviews',
+  viewMoreOnGoogle: 'View more on Google Maps',
+  loadingDetails: 'Loading details...',
   };
+

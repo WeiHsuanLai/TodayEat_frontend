@@ -40,35 +40,107 @@
           <q-card-section class="col q-pa-none relative-position">
             <q-scroll-area class="full-height">
               <q-list separator v-if="places.length">
-                <q-item
+                <q-expansion-item
                   v-for="(place, index) in places"
                   :key="index"
-                  clickable
+                  group="places"
+                  expand-separator
+                  header-class="q-pa-sm"
+                  @before-show="fetchDetails(place.place_id)"
                   @click="centerMapOnPlace(place, index)"
                 >
-                  <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
-                    <q-img
-                      :src="place.photoUrl || ''"
-                      style="border-radius: 8px; width: 64px; height: 64px"
-                      :ratio="1"
-                      spinner-color="grey-5"
-                      referrerpolicy="no-referrer"
-                    >
-                      <template #error>
-                        <q-icon name="image_not_supported" size="32px" color="grey-5" />
-                      </template>
-                    </q-img>
-                  </q-item-section>
+                  <template #header>
+                    <q-item-section avatar v-if="place.photos?.[0]?.photo_reference">
+                      <q-img
+                        :src="place.photoUrl || ''"
+                        style="border-radius: 8px; width: 64px; height: 64px"
+                        :ratio="1"
+                        spinner-color="grey-5"
+                        referrerpolicy="no-referrer"
+                      >
+                        <template #error>
+                          <q-icon name="image_not_supported" size="32px" color="grey-5" />
+                        </template>
+                      </q-img>
+                    </q-item-section>
 
-                  <q-item-section>
-                    <q-item-label class="text-weight-bold">{{ place.name }}</q-item-label>
-                    <q-item-label caption lines="2">{{ place.vicinity }}</q-item-label>
-                    <q-item-label caption class="text-primary text-weight-medium">
-                      ⭐️ {{ place.rating ?? t('ratingNone') }}
-                      {{ t('reviewsCount', { count: place.user_ratings_total ?? 0 }) }}
-                    </q-item-label>
-                  </q-item-section>
-                </q-item>
+                    <q-item-section>
+                      <q-item-label class="text-weight-bold text-subtitle1">{{
+                        place.name
+                      }}</q-item-label>
+                      <q-item-label caption lines="1">{{ place.vicinity }}</q-item-label>
+                      <q-item-label
+                        caption
+                        class="text-primary text-weight-medium flex items-center"
+                      >
+                        <span>{{ place.rating ?? t('ratingNone') }} ⭐️</span>
+                        <span class="q-ml-sm text-grey-7"
+                          >({{ t('reviewsCount', { count: place.user_ratings_total ?? 0 }) }})</span
+                        >
+                      </q-item-label>
+                    </q-item-section>
+                  </template>
+
+                  <q-card v-if="placeDetailsMap[place.place_id]" flat class="bg-grey-1">
+                    <q-card-section class="q-pt-none q-pb-md">
+                      <div class="text-caption text-grey-7 q-mb-xs">{{ t('address') }}</div>
+                      <div class="text-body2 q-mb-md">
+                        {{ placeDetailsMap[place.place_id]?.result.formatted_address }}
+                      </div>
+
+                      <div v-if="placeDetailsMap[place.place_id]?.result.reviews?.length">
+                        <div class="text-caption text-grey-7 q-mb-xs">{{ t('reviews') }}</div>
+                        <div
+                          v-for="(review, rIdx) in placeDetailsMap[place.place_id]?.result.reviews"
+                          :key="rIdx"
+                          class="q-mb-sm"
+                        >
+                          <div class="flex justify-between items-center">
+                            <span class="text-weight-bold text-caption">{{
+                              review.author_name
+                            }}</span>
+                            <span class="text-grey-6 text-caption">{{
+                              review.relative_time_description
+                            }}</span>
+                          </div>
+                          <div class="text-primary text-caption">
+                            {{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}
+                          </div>
+                          <div class="text-body2 text-grey-9 q-mt-xs">{{ review.text }}</div>
+                          <q-separator v-if="rIdx < 2" class="q-my-xs opacity-50" />
+                        </div>
+                      </div>
+
+                      <div class="row q-gutter-sm q-mt-md">
+                        <q-btn
+                          color="primary"
+                          icon="map"
+                          :label="t('viewMoreOnGoogle')"
+                          outline
+                          dense
+                          class="col"
+                          :href="placeDetailsMap[place.place_id]?.result.url"
+                          target="_blank"
+                        />
+                        <q-btn
+                          color="primary"
+                          icon="navigation"
+                          :label="t('startNavigation')"
+                          dense
+                          class="col"
+                          :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}&query_place_id=${place.place_id}&query=${typeof place.geometry.location.lat === 'function' ? place.geometry.location.lat() : place.geometry.location.lat},${typeof place.geometry.location.lng === 'function' ? place.geometry.location.lng() : place.geometry.location.lng}`"
+                          target="_blank"
+                        />
+                      </div>
+                    </q-card-section>
+                  </q-card>
+                  <q-card v-else flat class="bg-grey-1">
+                    <q-card-section class="flex flex-center q-pa-md">
+                      <q-spinner-dots color="primary" size="2em" />
+                      <div class="q-ml-sm text-grey-7">{{ t('loadingDetails') }}</div>
+                    </q-card-section>
+                  </q-card>
+                </q-expansion-item>
               </q-list>
               <div v-else class="text-grey full-height flex flex-center q-pa-xl text-center">
                 <div>
@@ -86,13 +158,21 @@
 
 <script setup lang="ts">
 import { env } from 'src/env';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Loader } from '@googlemaps/js-api-loader';
 import { placesApi } from 'src/api';
+import type { PlaceDetailsResponse } from 'src/api/places';
 import { useRoute } from 'vue-router';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+// 監聽語系變動，重新繪製標記以更新 InfoWindow 文字
+watch(locale, () => {
+  if (places.value.length > 0) {
+    addMarkers(places.value);
+  }
+});
 const route = useRoute();
 const keyword = ref('');
 const map = ref<google.maps.Map | null>(null);
@@ -100,6 +180,7 @@ const markers = ref<google.maps.Marker[]>([]);
 const userLocation = ref({ lat: 25.0478, lng: 121.5319 }); // 預設台北車站
 
 interface Place {
+  place_id: string;
   name: string;
   vicinity: string;
   rating?: number;
@@ -115,6 +196,17 @@ interface Place {
 }
 
 const isSearching = ref(false);
+const placeDetailsMap = ref<Record<string, PlaceDetailsResponse>>({});
+
+const fetchDetails = async (placeId: string) => {
+  if (placeDetailsMap.value[placeId]) return;
+  try {
+    const res = await placesApi.getPlaceDetails({ place_id: placeId });
+    placeDetailsMap.value[placeId] = res.data;
+  } catch (err) {
+    console.error('🔴 獲取詳情失敗:', err);
+  }
+};
 
 const centerMapOnPlace = (place: Place, index: number) => {
   if (!map.value || !place.geometry?.location) return;
@@ -125,15 +217,23 @@ const centerMapOnPlace = (place: Place, index: number) => {
 
   const position = { lat, lng };
 
-  // 1. 平滑移動到該位置
-  map.value.panTo(position);
-
-  // 2. 放大地圖（如果目前縮放不足 17）
+  // 1. 放大地圖（如果目前縮放不足 17）
   if (map.value.getZoom()! < 17) {
     map.value.setZoom(17);
   }
 
-  // 3. 如果有對應的標記，觸發點擊事件以顯示 InfoWindow
+  // 2. 平滑移動到該位置
+  map.value.panTo(position);
+
+  // 3. 手機版特別處理：將地圖向上偏移，讓標記顯示在中間偏下
+  // 這樣上方的 InfoWindow 才有足夠空間顯示
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    // panBy 是像素偏移，負值代表地圖向上移動 (標記相對向下)
+    map.value.panBy(0, -120);
+  }
+
+  // 4. 如果有對應的標記，觸發點擊事件以顯示 InfoWindow
   const marker = markers.value[index];
   if (marker) {
     // 使用 Google Maps 的 trigger 觸發點擊
@@ -162,8 +262,7 @@ const onSearch = async () => {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const places = ref<any[]>([]);
+const places = ref<Place[]>([]);
 
 const hasSearched = ref(false);
 
@@ -226,8 +325,7 @@ const addUserLocationMarker = () => {
 };
 
 // 加入店家標記
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const addMarkers = (places: any[]) => {
+const addMarkers = (places: Place[]) => {
   // console.log(`[🏠 addMarkers] 處理 ${places.length} 個店家`);
   if (!map.value) return;
 
@@ -250,15 +348,17 @@ const addMarkers = (places: any[]) => {
     const encodedName = encodeURIComponent(place.name);
     // 使用搜尋連結，這會在導航列顯示名稱
     const searchNavigationUrl = `https://www.google.com/maps/search/?api=1&query=${encodedName}&query_place_id=${place.place_id || ''}&query=${lat},${lng}`;
-    
+
     const info = new google.maps.InfoWindow({
       content: `
-        <div class="q-pa-sm">
-          <div class="text-weight-bold" style="font-size: 1.1em; margin-bottom: 4px;">${place.name}</div>
-          <div class="text-grey-8" style="margin-bottom: 12px;">${place.vicinity}</div>
-          <a href="${searchNavigationUrl}" target="_blank" class="q-btn q-btn--standard q-btn--rectangle bg-primary text-white q-btn--actionable q-focusable q-hoverable q-btn--dense" style="text-decoration: none; padding: 4px 12px; border-radius: 4px; display: inline-block;">
-            <span class="q-btn__content">${t('startNavigation')}</span>
-          </a>
+        <div class="marker-info-window q-pa-sm">
+          <div class="info-title text-weight-bold">${place.name}</div>
+          <div class="info-address text-grey-8">${place.vicinity}</div>
+          <div style="text-align: center;">
+            <a href="${searchNavigationUrl}" target="_blank" class="q-btn q-btn--standard q-btn--rectangle bg-primary text-white q-btn--actionable q-focusable q-hoverable q-btn--dense" style="text-decoration: none; padding: 4px 12px; border-radius: 4px; display: inline-block;">
+              <span class="q-btn__content info-btn-text">${t('startNavigation')}</span>
+            </a>
+          </div>
         </div>
       `,
     });
@@ -345,6 +445,36 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style>
+/* 地圖 InfoWindow 樣式 (非 scoped 以便作用於 Google Maps 的外部 DOM) */
+.marker-info-window {
+  min-width: 150px;
+}
+
+.marker-info-window .info-title {
+  font-size: 1.1em;
+  margin-bottom: 4px;
+}
+
+.marker-info-window .info-address {
+  margin-bottom: 12px;
+}
+
+/* 手機版 (小於 1024px) */
+@media (max-width: 1023px) {
+  .marker-info-window .info-title {
+    font-size: 0.95em;
+  }
+  .marker-info-window .info-address {
+    font-size: 0.85em;
+    margin-bottom: 8px;
+  }
+  .marker-info-window .info-btn-text {
+    font-size: 0.85em;
+  }
+}
+</style>
 
 <style scoped>
 .main-container-card {
