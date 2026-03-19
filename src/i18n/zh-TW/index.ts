@@ -118,4 +118,10 @@ export default {
   reviews: '精選評論',
   viewMoreOnGoogle: '在 Google 地圖上查看更多',
   loadingDetails: '載入詳情中...',
+  confirmUpdateAvatar: '更換大頭貼',
+  confirmUpdateAvatarMsg: '您確定要將大頭貼更換為此圖片嗎？',
+  editAvatar: '編輯大頭貼',
+  selectFile: '選擇檔案',
+  confirmUpload: '確定上傳',
+  todayVisitors: '今日造訪人數：{count}',
 };

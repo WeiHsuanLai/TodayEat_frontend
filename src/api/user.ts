@@ -63,6 +63,13 @@ export const ChangePasswordParamsSchema = z.object({
 
 export type ChangePasswordParams = z.infer<typeof ChangePasswordParamsSchema>;
 
+export const UploadAvatarResponseSchema = z.object({
+  url: z.string().url(),
+  public_id: z.string(),
+});
+
+export type UploadAvatarResponse = z.infer<typeof UploadAvatarResponseSchema>;
+
 export const userApi = {
   /**
    * 登入
@@ -126,5 +133,23 @@ export const userApi = {
    */
   getAdminLoginLogs() {
     return api.get<{ success: boolean; logs: LoginLog[] }>('/admin/login-logs');
+  },
+
+  /**
+   * 上傳大頭貼
+   */
+  uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api
+      .post<UploadAvatarResponse>('/upload/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      .then((res) => {
+        UploadAvatarResponseSchema.parse(res.data);
+        return res;
+      });
   },
 };

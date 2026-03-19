@@ -118,5 +118,7 @@ export default {
   reviews: 'Selected Reviews',
   viewMoreOnGoogle: 'View more on Google Maps',
   loadingDetails: 'Loading details...',
-  };
-
+  confirmUpdateAvatar: 'Update Avatar',
+  confirmUpdateAvatarMsg: 'Are you sure you want to update your avatar to this image?',
+  todayVisitors: 'Visitors Today: {count}',
+};

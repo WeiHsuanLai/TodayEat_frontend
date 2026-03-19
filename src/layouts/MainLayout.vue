@@ -17,6 +17,7 @@
         <!-- 右邊：導覽按鈕與使用者功能 -->
         <div class="row items-center q-gutter-sm">
           <!-- 桌面版：主要導覽按鈕 -->
+          <q-btn flat :label="t('home')" to="/" class="gt-xs" />
           <q-btn flat :label="t('draw')" to="/draw" class="gt-xs" />
           <q-btn
             v-if="userStore.isLoggedIn"
@@ -33,8 +34,6 @@
             class="gt-xs"
           />
 
-          <q-separator dark vertical inset class="q-mx-sm gt-xs" />
-
           <!-- 桌面版：登入與註冊按鈕 -->
           <template v-if="!userStore.isLoggedIn">
             <q-btn
@@ -44,19 +43,13 @@
               :label="t('register')"
               class="gt-xs"
             />
-            <q-btn
-              flat
-              color="white"
-              @click="showLogin = true"
-              :label="t('login')"
-              class="gt-xs"
-            />
+            <q-btn flat color="white" @click="showLogin = true" :label="t('login')" class="gt-xs" />
           </template>
 
           <!-- 已登入使用者資訊與選單 (保留在 Header，因為頭像通常是共用的) -->
           <template v-else>
-            <q-avatar size="32px" color="blue-2">
-              <img :src="userStore.avatar" />
+            <q-avatar size="32px" color="blue-2" class="shadow-1 q-ml-sm">
+              <img :src="userStore.avatar" style="object-fit: cover; width: 100%; height: 100%" />
             </q-avatar>
 
             <q-btn
@@ -64,51 +57,76 @@
               dense
               size="sm"
               color="white"
-              ref="userBtnRef"
-              :label="userStore.username"
               icon-right="expand_more"
               class="q-ml-xs"
             >
-              <q-menu auto-close anchor="bottom right" self="top right">
-                <div class="flex wrap flex-center full-width" avatar>
-                  <div class="menu-margin">
-                    <div class="column items-center">
-                      <q-avatar size="32px">
-                        <img :src="userStore.avatar" />
+              <q-menu
+                auto-close
+                anchor="bottom right"
+                self="top right"
+                :offset="[0, 8]"
+                style="width: 240px"
+              >
+                <div class="column no-wrap">
+                  <div class="q-pa-lg bg-grey-1 column items-center">
+                    <div class="cursor-pointer" @click.stop="onAvatarClick">
+                      <q-avatar size="64px" class="q-mb-md shadow-2">
+                        <img
+                          :src="userStore.avatar"
+                          style="object-fit: cover; width: 100%; height: 100%"
+                        />
+                        <q-badge
+                          color="primary"
+                          rounded
+                          class="avatar-edit-badge absolute flex flex-center shadow-1"
+                        >
+                          <q-icon name="edit" size="12px" color="white" />
+                        </q-badge>
                       </q-avatar>
                     </div>
-                    <div class="text-center full-width q-mt-xs">
+                    <div class="text-weight-bold text-h6 text-center full-width ellipsis">
                       {{ userStore.username }}
                     </div>
                   </div>
-                  <q-btn
-                    flat
-                    color="dark"
-                    :label="t('userSettings')"
-                    to="/setting"
-                    class="full-width justify-start q-px-md"
-                  />
-                  <q-btn
-                    flat
-                    color="dark"
-                    :label="t('foodDrawHistory')"
-                    to="/FoodDrawHistory"
-                    class="full-width justify-start q-px-md"
-                  />
-                  <q-btn
-                    flat
-                    color="dark"
-                    :label="t('loginHistory')"
-                    to="/LoginHistory"
-                    class="full-width justify-start q-px-md"
-                  />
-                  <q-btn
-                    flat
-                    color="primary"
-                    :label="t('signout')"
-                    @click="logout"
-                    class="full-width justify-start q-px-md"
-                  />
+
+                  <q-separator />
+
+                  <q-list dense padding>
+                    <q-item clickable v-ripple to="/setting">
+                      <q-item-section avatar>
+                        <q-icon name="settings" size="xs" />
+                      </q-item-section>
+                      <q-item-section>{{ t('userSettings') }}</q-item-section>
+                    </q-item>
+
+                    <q-item clickable v-ripple to="/FoodDrawHistory">
+                      <q-item-section avatar>
+                        <q-icon name="history" size="xs" />
+                      </q-item-section>
+                      <q-item-section>{{ t('foodDrawHistory') }}</q-item-section>
+                    </q-item>
+
+                    <q-item clickable v-ripple to="/LoginHistory">
+                      <q-item-section avatar>
+                        <q-icon name="login" size="xs" />
+                      </q-item-section>
+                      <q-item-section>{{ t('loginHistory') }}</q-item-section>
+                    </q-item>
+                  </q-list>
+
+                  <q-separator />
+
+                  <div class="q-pa-sm">
+                    <q-btn
+                      flat
+                      color="primary"
+                      :label="t('signout')"
+                      @click="logout"
+                      class="full-width text-weight-bold"
+                      icon="logout"
+                      size="sm"
+                    />
+                  </div>
                 </div>
               </q-menu>
             </q-btn>
@@ -171,7 +189,15 @@
             <q-item-section>{{ t('loginHistory') }}</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple @click="logout(); leftDrawerOpen = false" class="text-negative">
+          <q-item
+            clickable
+            v-ripple
+            @click="
+              logout();
+              leftDrawerOpen = false;
+            "
+            class="text-negative"
+          >
             <q-item-section avatar>
               <q-icon name="logout" color="negative" />
             </q-item-section>
@@ -223,14 +249,28 @@
         <!-- 登入與註冊 (手機版，僅在未登入時顯示) -->
         <template v-if="!userStore.isLoggedIn">
           <q-separator q-my-md />
-          <q-item clickable v-ripple @click="showLogin = true; leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            @click="
+              showLogin = true;
+              leftDrawerOpen = false;
+            "
+          >
             <q-item-section avatar>
               <q-icon name="login" color="primary" />
             </q-item-section>
             <q-item-section class="text-primary text-weight-bold">{{ t('login') }}</q-item-section>
           </q-item>
 
-          <q-item clickable v-ripple @click="showRegister = true; leftDrawerOpen = false">
+          <q-item
+            clickable
+            v-ripple
+            @click="
+              showRegister = true;
+              leftDrawerOpen = false;
+            "
+          >
             <q-item-section avatar>
               <q-icon name="person_add" />
             </q-item-section>
@@ -254,6 +294,69 @@
       @forgotPassword="goToForgotPage"
     />
 
+    <!-- 編輯大頭貼對話框 -->
+    <q-dialog v-model="showAvatarEditDialog" persistent @hide="onEditDialogHide">
+      <q-card style="min-width: 320px; border-radius: 12px">
+        <q-card-section class="row items-center q-px-md q-py-sm">
+          <div class="text-h6 text-weight-bold">{{ t('editAvatar') }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup size="md" />
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section class="q-pa-none">
+          <!-- 這裡完全複刻下拉選單中的顯示方式，但比例放大至 120px 以利預覽 -->
+          <div class="q-pa-lg bg-grey-1 column items-center">
+            <q-avatar size="120px" class="q-mb-md shadow-2">
+              <img
+                :src="tempAvatarPreview || userStore.avatar"
+                style="object-fit: cover; width: 100%; height: 100%"
+              />
+            </q-avatar>
+
+            <!-- 檔案選取按鈕 (隱藏) -->
+            <input
+              type="file"
+              ref="avatarInputRef"
+              class="hidden"
+              accept="image/*"
+              @change="handleFileChange"
+            />
+
+            <div class="q-mt-md">
+              <q-btn
+                outline
+                color="primary"
+                icon="photo_camera"
+                :label="t('selectFile')"
+                @click="onSelectFileBtnClick"
+                class="q-px-md"
+              />
+            </div>
+            <div v-if="selectedFile" class="text-caption text-grey-7 q-mt-sm">
+              {{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(1) }} KB)
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-actions align="right" class="q-pa-md">
+          <q-btn flat :label="t('cancel')" v-close-popup color="grey-7" />
+          <q-btn
+            unelevated
+            :label="t('confirmUpload')"
+            color="primary"
+            :loading="isUploading"
+            :disable="!selectedFile"
+            @click="onConfirmUpload"
+            class="q-px-lg"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- 頁面內容 -->
     <q-page-container>
       <router-view v-slot="{ Component }">
@@ -269,12 +372,91 @@
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { Notify } from 'quasar';
 import LoginDialog from '../components/LoginDialog.vue';
 import { useUserStore } from '../stores/userStore';
 import RegisterDialog from '../components/RegisterDialog.vue';
+import { userApi } from 'src/api/user';
 
 const userStore = useUserStore();
 userStore.restore();
+
+// --- 編輯大頭貼相關 ---
+const showAvatarEditDialog = ref(false);
+const avatarInputRef = ref<HTMLInputElement | null>(null);
+const tempAvatarPreview = ref<string | null>(null);
+const selectedFile = ref<File | null>(null);
+const isUploading = ref(false);
+
+function onAvatarClick() {
+  showAvatarEditDialog.value = true;
+}
+
+function onSelectFileBtnClick() {
+  avatarInputRef.value?.click();
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  // 1MB 限制
+  if (file.size > 1024 * 1024) {
+    Notify.create({
+      type: 'negative',
+      message: '檔案大小不可超過 1MB',
+    });
+    return;
+  }
+
+  // 產生預覽
+  if (tempAvatarPreview.value) {
+    URL.revokeObjectURL(tempAvatarPreview.value);
+  }
+  selectedFile.value = file;
+  tempAvatarPreview.value = URL.createObjectURL(file);
+}
+
+async function onConfirmUpload() {
+  if (!selectedFile.value) return;
+
+  isUploading.value = true;
+  try {
+    const res = await userApi.uploadAvatar(selectedFile.value);
+    if (res.data.url) {
+      await userStore.setUser({
+        avatar: res.data.url,
+      });
+      Notify.create({
+        type: 'positive',
+        message: t('success'),
+      });
+      showAvatarEditDialog.value = false;
+    }
+  } catch (err) {
+    console.error('上傳大頭貼失敗:', err);
+    Notify.create({
+      type: 'negative',
+      message: t('failed'),
+    });
+  } finally {
+    isUploading.value = false;
+  }
+}
+
+function onEditDialogHide() {
+  // 清理資源
+  if (tempAvatarPreview.value) {
+    URL.revokeObjectURL(tempAvatarPreview.value);
+  }
+  tempAvatarPreview.value = null;
+  selectedFile.value = null;
+  if (avatarInputRef.value) {
+    avatarInputRef.value.value = '';
+  }
+}
+// --- 編輯大頭貼結束 ---
 
 // 手機版側邊欄控制
 const leftDrawerOpen = ref(false);
@@ -284,9 +466,6 @@ const router = useRouter();
 function goHome() {
   void router.push('/');
 }
-
-// 調整登出下拉選單寬度
-const userBtnRef = ref<HTMLElement | null>(null);
 
 // 登入
 const showLogin = ref(false);
@@ -304,7 +483,13 @@ watch(showLogin, (val) => {
   }
 });
 
-function handleLogin(data: { username: string; token: string; role: number; avatar: string; loginType: 'normal' | 'google' }) {
+function handleLogin(data: {
+  username: string;
+  token: string;
+  role: number;
+  avatar: string;
+  loginType: 'normal' | 'google';
+}) {
   void userStore.setUser({
     username: data.username,
     token: data.token,
@@ -362,9 +547,13 @@ function toggleLang() {
   box-shadow: none !important;
 }
 
-.menu-margin {
-  margin: 20px 0 10px 0;
-  width: 200px;
+.avatar-edit-badge {
+  bottom: 2px;
+  right: -5px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid white;
 }
 
 .cursor-pointer {

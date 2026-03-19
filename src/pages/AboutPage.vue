@@ -149,21 +149,43 @@
         </div>
       </div>
     </div>
+
+    <!-- 右下角今日訪客數 -->
+    <div
+      class="absolute-bottom-right q-pa-md text-grey-8 flex items-center q-gutter-x-xs gt-xs"
+      style="font-size: 0.8rem"
+    >
+      <q-icon name="visibility" size="14px" />
+      <span>{{ t('todayVisitors', { count: todayVisitors }) }}</span>
+    </div>
   </q-page>
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useUserStore } from 'src/stores/userStore';
 import { useUIStore } from 'src/stores/ui';
 import { useQuasar } from 'quasar';
+import { systemApi } from 'src/api';
 
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const uiStore = useUIStore();
 const $q = useQuasar();
+
+const todayVisitors = ref(0);
+
+onMounted(async () => {
+  try {
+    const res = await systemApi.getVisitorCount();
+    todayVisitors.value = res.data.visitorCount;
+  } catch (err) {
+    console.error('取得訪客數失敗:', err);
+  }
+});
 
 const handleCardClick = (path: string, requiresAuth = false) => {
   if (requiresAuth && !userStore.isLoggedIn) {
